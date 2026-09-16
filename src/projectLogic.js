@@ -78,11 +78,7 @@ export function calculateSimilarityScore(candidateText = '', referenceText = '')
 }
 
 export function getCertificateItems() {
-  return [
-    { id: 'completion', title: 'Project Completion Certificate', project: 'Smart HealthNet', date: 'Aug 2026', status: 'Issued' },
-    { id: 'innovation', title: 'Innovation Showcase Certificate', project: 'Campus Connect', date: 'Jul 2026', status: 'Issued' },
-    { id: 'research', title: 'Research Excellence Certificate', project: 'EcoTrack', date: 'Jun 2026', status: 'Issued' },
-  ]
+  return []
 }
 
 export function getReportSummary(tasks = [], guidance = []) {

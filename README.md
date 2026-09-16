@@ -51,6 +51,8 @@ The repository includes `api/[...path].js`, which exposes the Express API as a V
 ```env
 MONGODB_URI=mongodb+srv://<database-user>:<url-encoded-password>@<cluster-host>/projectvault?retryWrites=true&w=majority&appName=ProjectVault
 JWT_SECRET=<long-random-secret>
+MENTOR_SECRET=<mentor-registration-secret>
+HOD_SECRET=<hod-registration-secret>
 CLIENT_URL=https://project-vault-nbnscoe.vercel.app
 ```
 
@@ -69,9 +71,9 @@ After deployment, open `https://project-vault-nbnscoe.vercel.app/api/health`. It
 
 Register a test account or create a project through the API. Then open Atlas **Browse Collections**. The `projectvault` database will contain collections such as `users`, `projects`, `tasks`, and `reports` after the first records are created.
 
-The authenticated frontend hydrates projects, tasks, and achievements from the Express/Mongoose API. Local storage remains only for session, preferences, and small UI-only drafts.
+The authenticated frontend hydrates users, projects, tasks, requests, guidance, reports, achievements, chat, knowledge resources, process steps, and settings from the Express/Mongoose API. Local storage is used only for the login session token, cached session user, and visual theme preference.
 
-To remove the existing MongoDB records and keep only five starter projects and five starter tasks, review your `.env` and run:
+To remove all existing MongoDB records and return to an empty database, review your `.env` and run:
 
 ```powershell
 npm run data:reset

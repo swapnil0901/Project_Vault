@@ -37,18 +37,24 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['student', 'mentor', 'hod'], default: 'student' },
   department: String,
   batch: String,
+  notifications: { type: Boolean, default: true },
+  weeklyDigest: { type: Boolean, default: true },
 }, { timestamps: true })
 
 const projectSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: String,
   abstract: String,
+  problemStatement: String,
+  solution: String,
   type: String,
   year: String,
   progress: { type: Number, default: 0 },
   color: String,
   mentor: String,
   members: [String],
+  memberDetails: [{ name: String, email: String, batch: String, department: String }],
+  tech: [String],
   github: String,
   drive: String,
   deployed: String,
@@ -85,11 +91,84 @@ const achievementSchema = new mongoose.Schema({
   createdBy: String,
 }, { timestamps: true })
 
+const guidanceSchema = new mongoose.Schema({
+  project: String,
+  message: { type: String, required: true },
+  from: String,
+  fromUserId: String,
+  status: { type: String, default: 'Sent' },
+}, { timestamps: true })
+
+const requestSchema = new mongoose.Schema({
+  project: String,
+  from: String,
+  fromUserId: String,
+  to: String,
+  invitee: Object,
+  type: String,
+  status: { type: String, default: 'pending' },
+  taskId: String,
+  taskTitle: String,
+  proof: String,
+}, { timestamps: true })
+
+const feedbackSchema = new mongoose.Schema({
+  requestId: String,
+  project: String,
+  from: String,
+  type: String,
+  status: String,
+  message: String,
+  userId: String,
+}, { timestamps: true })
+
+const messageSchema = new mongoose.Schema({
+  channel: String,
+  author: String,
+  authorId: String,
+  role: String,
+  text: { type: String, required: true },
+}, { timestamps: true })
+
+const knowledgeSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  type: String,
+  tag: String,
+  owner: String,
+  ownerId: String,
+  year: String,
+  description: String,
+  link: String,
+}, { timestamps: true })
+
+const processSchema = new mongoose.Schema({
+  key: { type: String, unique: true, default: 'default' },
+  steps: [String],
+  updatedBy: String,
+}, { timestamps: true })
+
 const User = mongoose.models.User || mongoose.model('User', userSchema)
 const Project = mongoose.models.Project || mongoose.model('Project', projectSchema)
 const Task = mongoose.models.Task || mongoose.model('Task', taskSchema)
 const Report = mongoose.models.Report || mongoose.model('Report', reportSchema)
 const Achievement = mongoose.models.Achievement || mongoose.model('Achievement', achievementSchema)
+const Guidance = mongoose.models.Guidance || mongoose.model('Guidance', guidanceSchema)
+const Request = mongoose.models.Request || mongoose.model('Request', requestSchema)
+const Feedback = mongoose.models.Feedback || mongoose.model('Feedback', feedbackSchema)
+const Message = mongoose.models.Message || mongoose.model('Message', messageSchema)
+const Knowledge = mongoose.models.Knowledge || mongoose.model('Knowledge', knowledgeSchema)
+const Process = mongoose.models.Process || mongoose.model('Process', processSchema)
+
+const publicUser = (user) => ({
+  id: user._id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  department: user.department,
+  batch: user.batch,
+  notifications: user.notifications,
+  weeklyDigest: user.weeklyDigest,
+})
 
 app.get('/api/health', (_req, res) => {
   const databaseReady = mongoose.connection.readyState === 1
@@ -102,11 +181,14 @@ app.get('/api/health', (_req, res) => {
 })
 
 app.post('/api/auth/register', asyncRoute(async (req, res) => {
-  const { name, email, password, role, department, batch } = req.body || {}
+  const { name, email, password, role, department, batch, secret } = req.body || {}
 
   if (!name || !email || !password) {
     return res.status(400).json({ message: 'Name, email and password are required.' })
   }
+  if (!['student', 'mentor', 'hod'].includes(role || 'student')) return res.status(400).json({ message: 'Invalid role.' })
+  if (role === 'mentor' && secret !== process.env.MENTOR_SECRET) return res.status(403).json({ message: 'Invalid mentor secret code.' })
+  if (role === 'hod' && secret !== process.env.HOD_SECRET) return res.status(403).json({ message: 'Invalid HOD secret code.' })
 
   try {
     const existingUser = await User.findOne({ email: email.toLowerCase() })
@@ -125,7 +207,7 @@ app.post('/api/auth/register', asyncRoute(async (req, res) => {
     })
 
     const token = signToken(user)
-    return res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } })
+    return res.status(201).json({ token, user: publicUser(user) })
   } catch (error) {
     return res.status(500).json({ message: 'Registration failed', error: error.message })
   }
@@ -150,7 +232,7 @@ app.post('/api/auth/login', asyncRoute(async (req, res) => {
     }
 
     const token = signToken(user)
-    return res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } })
+    return res.json({ token, user: publicUser(user) })
   } catch (error) {
     return res.status(500).json({ message: 'Login failed', error: error.message })
   }
@@ -172,6 +254,30 @@ function requireAuth(req, res, next) {
   }
 }
 
+app.get('/api/users', requireAuth, asyncRoute(async (req, res) => {
+  const requestedRole = ['student', 'mentor', 'hod'].includes(req.query.role) ? req.query.role : null
+  if (req.user.role !== 'hod' && requestedRole !== 'mentor') return res.status(403).json({ message: 'Only HOD users can view department users.' })
+  const users = await User.find(requestedRole ? { role: requestedRole } : {}).select('-password').sort({ role: 1, name: 1 })
+  res.json(users.map(publicUser))
+}))
+
+app.post('/api/users', requireAuth, asyncRoute(async (req, res) => {
+  if (req.user.role !== 'hod') return res.status(403).json({ message: 'Only HOD users can add department users.' })
+  const { name, email, password, role, department, batch } = req.body || {}
+  if (!name?.trim() || !email?.trim() || !password || !['student', 'mentor', 'hod'].includes(role)) {
+    return res.status(400).json({ message: 'Name, email, password, and a valid role are required.' })
+  }
+
+  try {
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() })
+    if (existingUser) return res.status(409).json({ message: 'A user with this email already exists.' })
+    const user = await User.create({ name: name.trim(), email: email.toLowerCase().trim(), password: await hashPassword(password), role, department, batch })
+    res.status(201).json(publicUser(user))
+  } catch (error) {
+    res.status(500).json({ message: 'User creation failed', error: error.message })
+  }
+}))
+
 app.get('/api/projects', requireAuth, asyncRoute(async (_req, res) => {
   const projects = await Project.find({}).sort({ createdAt: -1 })
   res.json(projects)
@@ -183,12 +289,16 @@ app.post('/api/projects', requireAuth, asyncRoute(async (req, res) => {
       name: req.body.name,
       description: req.body.description,
       abstract: req.body.abstract || req.body.description,
+      problemStatement: req.body.problemStatement,
+      solution: req.body.solution,
       type: req.body.type || 'New project',
       year: req.body.year || new Date().getFullYear().toString(),
       progress: req.body.progress || 0,
       color: req.body.color || 'blue',
       mentor: req.body.mentor || 'Mentor to be requested',
       members: req.body.members || [],
+      memberDetails: req.body.memberDetails || [],
+      tech: req.body.tech || [],
       github: req.body.github,
       drive: req.body.drive,
       deployed: req.body.deployed,
@@ -201,6 +311,21 @@ app.post('/api/projects', requireAuth, asyncRoute(async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Project creation failed', error: error.message })
   }
+}))
+
+app.put('/api/projects/:id', requireAuth, asyncRoute(async (req, res) => {
+  if (!['mentor', 'hod', 'student'].includes(req.user.role)) return res.status(403).json({ message: 'You cannot update projects.' })
+  const project = await Project.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+  if (!project) return res.status(404).json({ message: 'Project not found' })
+  res.json(project)
+}))
+
+app.delete('/api/projects/:id', requireAuth, asyncRoute(async (req, res) => {
+  if (!['mentor', 'hod'].includes(req.user.role)) return res.status(403).json({ message: 'Only mentors and HODs can delete projects.' })
+  const project = await Project.findByIdAndDelete(req.params.id)
+  if (!project) return res.status(404).json({ message: 'Project not found' })
+  await Task.deleteMany({ project: project.name })
+  res.status(204).end()
 }))
 
 app.get('/api/tasks', requireAuth, asyncRoute(async (_req, res) => {
@@ -235,6 +360,70 @@ app.put('/api/tasks/:id', requireAuth, asyncRoute(async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Task update failed', error: error.message })
   }
+}))
+
+app.get('/api/guidance', requireAuth, asyncRoute(async (_req, res) => {
+  res.json(await Guidance.find({}).sort({ createdAt: -1 }))
+}))
+
+app.post('/api/guidance', requireAuth, asyncRoute(async (req, res) => {
+  const guidance = await Guidance.create({ ...req.body, from: req.user.name, fromUserId: req.user.id })
+  res.status(201).json(guidance)
+}))
+
+app.get('/api/requests', requireAuth, asyncRoute(async (_req, res) => {
+  res.json(await Request.find({ status: 'pending' }).sort({ createdAt: -1 }))
+}))
+
+app.post('/api/requests', requireAuth, asyncRoute(async (req, res) => {
+  const request = await Request.create({ ...req.body, from: req.user.name, fromUserId: req.user.id })
+  res.status(201).json(request)
+}))
+
+app.put('/api/requests/:id', requireAuth, asyncRoute(async (req, res) => {
+  const request = await Request.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true })
+  if (!request) return res.status(404).json({ message: 'Request not found' })
+  const feedback = await Feedback.create({ requestId: request._id.toString(), project: request.project, from: request.from, type: request.type, status: request.status, message: req.body.message || '', userId: req.user.id })
+  res.json({ request, feedback })
+}))
+
+app.get('/api/feedback', requireAuth, asyncRoute(async (_req, res) => {
+  res.json(await Feedback.find({}).sort({ createdAt: -1 }))
+}))
+
+app.get('/api/messages', requireAuth, asyncRoute(async (_req, res) => {
+  res.json(await Message.find({}).sort({ createdAt: 1 }))
+}))
+
+app.post('/api/messages', requireAuth, asyncRoute(async (req, res) => {
+  const message = await Message.create({ ...req.body, author: req.user.name, authorId: req.user.id, role: req.user.role })
+  res.status(201).json(message)
+}))
+
+app.get('/api/knowledge', requireAuth, asyncRoute(async (_req, res) => {
+  res.json(await Knowledge.find({}).sort({ createdAt: -1 }))
+}))
+
+app.post('/api/knowledge', requireAuth, asyncRoute(async (req, res) => {
+  const item = await Knowledge.create({ ...req.body, owner: req.user.name, ownerId: req.user.id })
+  res.status(201).json(item)
+}))
+
+app.get('/api/process', requireAuth, asyncRoute(async (_req, res) => {
+  const process = await Process.findOne({ key: 'default' })
+  res.json(process || { key: 'default', steps: [] })
+}))
+
+app.put('/api/process', requireAuth, asyncRoute(async (req, res) => {
+  if (!['mentor', 'hod'].includes(req.user.role)) return res.status(403).json({ message: 'Only mentors and HODs can update the process.' })
+  const process = await Process.findOneAndUpdate({ key: 'default' }, { key: 'default', steps: req.body.steps || [], updatedBy: req.user.id }, { new: true, upsert: true, runValidators: true })
+  res.json(process)
+}))
+
+app.put('/api/me', requireAuth, asyncRoute(async (req, res) => {
+  const user = await User.findByIdAndUpdate(req.user.id, { name: req.body.name, email: req.body.email, department: req.body.department, batch: req.body.batch, notifications: req.body.notifications, weeklyDigest: req.body.weeklyDigest }, { new: true, runValidators: true }).select('-password')
+  if (!user) return res.status(404).json({ message: 'User not found' })
+  res.json(publicUser(user))
 }))
 
 app.get('/api/reports', requireAuth, asyncRoute(async (_req, res) => {

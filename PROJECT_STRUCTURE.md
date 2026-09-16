@@ -27,7 +27,7 @@ This project is a React + Express application for academic project management.
   - login / register flow
   - project list and task management
   - dashboard pages and role-based UI
-  - localStorage-based demo persistence
+  - MongoDB-backed application state and local session/theme storage
 
 - `src/styles.css`  
   All visual styling for the ProjectVault interface.
@@ -61,7 +61,9 @@ This project is a React + Express application for academic project management.
   Generates text summaries for weekly progress and project status reports.
 
 - `server/resetData.js`  
-  Destructive reset utility that clears MongoDB and leaves five projects plus five tasks. Run only with `npm run data:reset` when deleting current data is intentional.
+  Destructive reset utility that clears MongoDB without inserting sample records. Run only with `npm run data:reset` when deleting current data is intentional.
+
+MongoDB collections used by the application include `users`, `projects`, `tasks`, `reports`, `achievements`, `guidances`, `requests`, `feedbacks`, `messages`, `knowledges`, and `processes`.
 
 ## Generated / non-runtime files
 
@@ -87,11 +89,11 @@ This project is a React + Express application for academic project management.
 
 - Browser UI -> React -> fetch API calls
 - Express backend -> validates auth -> queries MongoDB
-- Mongoose models -> persist project data
+- Mongoose models -> persist application data
 - Report service -> creates summary text files for updates
 
 ## Integrations
 
 - OpenAI is called server-side through `/api/ai/project-advice`; keep `OPENAI_API_KEY` out of browser code.
 - GitHub metadata is fetched server-side through `/api/github/repository`; public repositories work without a token and `GITHUB_TOKEN` raises rate limits.
-- After authentication, projects, tasks, and achievements are hydrated from MongoDB. Local storage is used for session and UI preferences only.
+- After authentication, all mutable application data is hydrated from MongoDB. Local storage is used only for session and UI preferences.

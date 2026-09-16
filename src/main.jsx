@@ -21,16 +21,7 @@ import {
 import { buildRoleNavigation, calculateProjectProgress, getTaskApprovalStatus, resolveProjectImage, getCertificateItems, calculateSimilarityScore } from './projectLogic.js'
 import './styles.css'
 
-const seedProjects = [
-  { id: 'healthnet', name: 'Smart HealthNet', type: 'AI · HealthTech', year: 'Final year · 2024', abstract: 'An intelligent health monitoring platform that helps clinics identify risk patterns earlier through explainable machine learning.', problemStatement: 'Clinics need a faster way to detect patient risk patterns and support preventive care using health data and explainable AI.', solution: 'Smart HealthNet uses patient records, sensor data, and explainable machine learning models to identify risk patterns early and guide clinical decisions.', tech: ['Python', 'FastAPI', 'OpenCV', 'MongoDB'], progress: 72, color: 'coral', members: ['Arjun Nair', 'Riya Shah'], mentor: 'Dr. Meera Patel', github: 'https://github.com/', drive: 'https://drive.google.com/', image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1200&q=80', gallery: ['https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1200&q=80', 'https://images.unsplash.com/photo-1538108149393-fbbd81895973?auto=format&fit=crop&w=1200&q=80'] },
-  { id: 'campus', name: 'Campus Connect', type: 'EdTech · Mobile', year: 'Third year · 2025', abstract: 'A peer learning network that connects students with study groups, campus events, and trusted academic resources.', problemStatement: 'Students find it difficult to discover peer study groups, campus events, and trusted academic resources in one place.', solution: 'Campus Connect provides a student-focused network for learning groups, event discovery, and collaborative academic support using a mobile-first interface.', tech: ['React Native', 'Node.js', 'MongoDB', 'Socket.IO'], progress: 48, color: 'blue', members: ['Neha Joshi', 'Aman Kumar'], mentor: 'Prof. K. Rao', github: 'https://github.com/', drive: 'https://drive.google.com/', image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80', gallery: ['https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80', 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80'] },
-  { id: 'ecotrack', name: 'EcoTrack', type: 'Climate · IoT', year: 'Final year · 2024', abstract: 'A low-cost sensor network for monitoring campus energy use and turning environmental data into practical action.', problemStatement: 'Campuses lack a simple way to monitor energy and sustainability patterns across facilities and convert data into actionable steps.', solution: 'EcoTrack uses low-cost IoT sensors and analytics to monitor campus energy use and show practical sustainability recommendations to students and staff.', tech: ['Arduino', 'Python', 'MQTT', 'React'], progress: 31, color: 'yellow', members: ['Meera Das', 'Vikram Singh'], mentor: 'Dr. Anil Thomas', github: 'https://github.com/', drive: 'https://drive.google.com/', image: 'https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?auto=format&fit=crop&w=1200&q=80', gallery: ['https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?auto=format&fit=crop&w=1200&q=80', 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80'] },
-]
-const initialTasks = [
-  { title: 'Finalize system architecture', project: 'Smart HealthNet', due: 'Today', priority: 'High', done: false },
-  { title: 'Review literature survey', project: 'Campus Connect', due: 'Tomorrow', priority: 'Medium', done: false },
-  { title: 'Upload sprint 04 report', project: 'Smart HealthNet', due: 'Aug 28', priority: 'High', done: false },
-]
+const initialTasks = []
 const roles = { student: { label: 'Student', icon: GraduationCap, detail: 'Discover projects, find collaborators, and request guidance.' }, mentor: { label: 'Mentor', icon: Users, detail: 'Guide teams, review progress, and access project resources.' }, hod: { label: 'HOD', icon: ShieldCheck, detail: 'Oversee departments, projects, and academic outcomes.' } }
 const portalNavigation = {
   student: [
@@ -43,18 +34,11 @@ const portalNavigation = {
     ['Overview', LayoutDashboard], ['All Projects', FolderKanban], ['Mentors & Groups', ShieldCheck], ['Students', GraduationCap], ['Teams', Users], ['Project Monitoring', Gauge], ['Reports', FileText], ['Project Similarity', Sparkles], ['Alumni', Users], ['Achievements', Award], ['Project Chat', MessageCircle], ['Notifications', Bell],
   ],
 }
-const normalizeProjects = (stored) => stored.map((project) => ({ ...(seedProjects.find((seed) => seed.name === project.name) || {}), ...project, abstract: project.abstract || seedProjects.find((seed) => seed.name === project.name)?.abstract || project.description || 'Project abstract to be added.', year: project.year || 'Academic project', mentor: project.mentor || 'To be assigned' }))
-const defaultProcess = ['Idea and problem definition', 'Proposal and team formation', 'Mentor assignment', 'Literature survey', 'System design', 'Implementation sprints', 'Testing and documentation', 'Final review and presentation']
-const seedKnowledge = [
-  { id: 'k1', title: 'Smart HealthNet final report', type: 'Project report', tag: 'HealthTech', owner: 'Arjun Nair', year: '2024', description: 'Architecture, evaluation results, and lessons from an explainable health monitoring platform.', link: 'https://drive.google.com/' },
-  { id: 'k2', title: 'Computer vision literature survey', type: 'Research paper', tag: 'AI Research', owner: 'Riya Shah', year: '2024', description: 'A curated survey of detection and classification approaches for academic projects.', link: 'https://drive.google.com/' },
-  { id: 'k3', title: 'IoT project starter kit', type: 'Tutorial', tag: 'IoT', owner: 'ProjectVault Faculty', year: '2025', description: 'Sensor selection, MQTT setup, data modelling, and testing guidance for student teams.', link: 'https://github.com/' },
-  { id: 'k4', title: 'Campus Connect presentation', type: 'Presentation', tag: 'EdTech', owner: 'Neha Joshi', year: '2025', description: 'The problem statement, user research, product decisions, and outcomes from Campus Connect.', link: 'https://drive.google.com/' },
-  { id: 'k5', title: 'Project documentation checklist', type: 'Template', tag: 'Process', owner: 'Academic Office', year: '2026', description: 'A practical checklist for proposals, weekly reports, testing evidence, and final submission.', link: 'https://drive.google.com/' },
-  { id: 'k6', title: 'Responsible AI project guide', type: 'Guide', tag: 'AI Research', owner: 'Research Cell', year: '2026', description: 'Privacy, evaluation, explainability, and citation practices for student AI work.', link: 'https://drive.google.com/' },
-]
+const normalizeProjects = (stored) => stored.map((project) => ({ ...project, id: project._id || project.id, abstract: project.abstract || project.description || '', year: project.year || '', mentor: project.mentor || '' }))
+const defaultProcess = []
+const seedKnowledge = []
 
-const projectMentors = ['Dr. Meera Patel', 'Prof. K. Rao', 'Dr. Anil Thomas', 'Dr. Neha Sinha', 'Prof. Raghav Menon', 'Dr. Priya Nair']
+const projectMentors = []
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim()
 const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 const pointsToLocalHost = configuredApiUrl?.includes('localhost') || configuredApiUrl?.includes('127.0.0.1')
@@ -94,11 +78,11 @@ async function apiRequest(path, options = {}) {
   return payload
 }
 
-function ProjectWizard({ form, setForm, editing, onClose, onSubmit }) {
+function ProjectWizard({ form, setForm, editing, mentors = [], onClose, onSubmit }) {
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }))
   const updateMember = (index, field, value) => setForm((current) => ({ ...current, members: current.members.map((member, memberIndex) => memberIndex === index ? { ...member, [field]: value } : member) }))
 
-  return <div className="modal-backdrop" onClick={onClose}><form className="composer-modal project-wizard" onSubmit={onSubmit} onClick={(event) => event.stopPropagation()}><div className="modal-heading"><div><p className="eyebrow">Project workspace</p><h2>{editing ? 'Edit project' : 'Create a project'}</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="Close project wizard"><X size={18} /></button></div><div className="wizard-section"><p className="eyebrow">01 · Project details</p><label>Project title<input autoFocus required value={form.name} onChange={(event) => update('name', event.target.value)} placeholder="e.g. Smart HealthNet" /></label><label>About the project<textarea value={form.description} onChange={(event) => update('description', event.target.value)} placeholder="Abstract and overview" rows="3" /></label><label>Problem statement<textarea value={form.problemStatement} onChange={(event) => update('problemStatement', event.target.value)} placeholder="Describe the real problem this project is solving..." rows="3" /></label><label>Solution approach<textarea value={form.solution} onChange={(event) => update('solution', event.target.value)} placeholder="Explain the proposed solution, method, or technology..." rows="3" /></label><label>Project image URL<input type="url" value={form.image} onChange={(event) => update('image', event.target.value)} placeholder="https://images.unsplash.com/..." /></label><div className="wizard-two-column"><label>GitHub source code<input type="url" value={form.github} onChange={(event) => update('github', event.target.value)} placeholder="https://github.com/..." /></label><label>Google Drive documentation<input type="url" value={form.drive} onChange={(event) => update('drive', event.target.value)} placeholder="https://drive.google.com/..." /></label></div></div><div className="wizard-section"><p className="eyebrow">02 · Invite student members</p><p className="wizard-help">Add each student’s name, email, batch, and department. A pending join request will appear in their account.</p>{form.members.map((member, index) => <div className="member-invite-row" key={index}><strong>Member {index + 1}</strong><input value={member.name} onChange={(event) => updateMember(index, 'name', event.target.value)} placeholder="Student name" /><input type="email" value={member.email} onChange={(event) => updateMember(index, 'email', event.target.value)} placeholder="Student email" /><input value={member.batch} onChange={(event) => updateMember(index, 'batch', event.target.value)} placeholder="Batch / year" /><input value={member.department} onChange={(event) => updateMember(index, 'department', event.target.value)} placeholder="Department" /></div>)}</div><div className="wizard-section"><p className="eyebrow">03 · Request a mentor</p><p className="wizard-help">Choose a mentor to send a supervision request. They can accept or reject it from Mentor Workspace.</p><label>Mentor<select value={form.mentor} onChange={(event) => update('mentor', event.target.value)}><option value="">Select a mentor</option>{projectMentors.map((mentor) => <option key={mentor} value={mentor}>{mentor}</option>)}</select></label></div><div className="modal-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancel</button><button className="primary-button" type="submit"><Check size={16} /> {editing ? 'Save project' : 'Create project and send requests'}</button></div></form></div>
+  return <div className="modal-backdrop" onClick={onClose}><form className="composer-modal project-wizard" onSubmit={onSubmit} onClick={(event) => event.stopPropagation()}><div className="modal-heading"><div><p className="eyebrow">Project workspace</p><h2>{editing ? 'Edit project' : 'Create a project'}</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="Close project wizard"><X size={18} /></button></div><div className="wizard-section"><p className="eyebrow">01 · Project details</p><label>Project title<input autoFocus required value={form.name} onChange={(event) => update('name', event.target.value)} placeholder="e.g. Your project title" /></label><label>About the project<textarea value={form.description} onChange={(event) => update('description', event.target.value)} placeholder="Abstract and overview" rows="3" /></label><label>Problem statement<textarea value={form.problemStatement} onChange={(event) => update('problemStatement', event.target.value)} placeholder="Describe the real problem this project is solving..." rows="3" /></label><label>Solution approach<textarea value={form.solution} onChange={(event) => update('solution', event.target.value)} placeholder="Explain the proposed solution, method, or technology..." rows="3" /></label><label>Project image URL<input type="url" value={form.image} onChange={(event) => update('image', event.target.value)} placeholder="https://..." /></label><div className="wizard-two-column"><label>GitHub source code<input type="url" value={form.github} onChange={(event) => update('github', event.target.value)} placeholder="https://github.com/..." /></label><label>Google Drive documentation<input type="url" value={form.drive} onChange={(event) => update('drive', event.target.value)} placeholder="https://drive.google.com/..." /></label></div></div><div className="wizard-section"><p className="eyebrow">02 · Invite student members</p><p className="wizard-help">Add each student’s name, email, batch, and department. A pending join request will appear in their account.</p>{form.members.map((member, index) => <div className="member-invite-row" key={index}><strong>Member {index + 1}</strong><input value={member.name} onChange={(event) => updateMember(index, 'name', event.target.value)} placeholder="Student name" /><input type="email" value={member.email} onChange={(event) => updateMember(index, 'email', event.target.value)} placeholder="Student email" /><input value={member.batch} onChange={(event) => updateMember(index, 'batch', event.target.value)} placeholder="Batch / year" /><input value={member.department} onChange={(event) => updateMember(index, 'department', event.target.value)} placeholder="Department" /></div>)}</div><div className="wizard-section"><p className="eyebrow">03 · Request a mentor</p><p className="wizard-help">Choose a mentor to send a supervision request. They can accept or reject it from Mentor Workspace.</p><label>Mentor<select value={form.mentor} onChange={(event) => update('mentor', event.target.value)}><option value="">Select a mentor</option>{mentors.map((mentor) => <option key={mentor.id} value={mentor.name}>{mentor.name}</option>)}</select></label></div><div className="modal-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancel</button><button className="primary-button" type="submit"><Check size={16} /> {editing ? 'Save project' : 'Create project and send requests'}</button></div></form></div>
 }
 
 function App() {
@@ -110,31 +94,26 @@ function App() {
   const [activePage, setActivePage] = useState('Overview')
   const [selectedProject, setSelectedProject] = useState(null)
   const [projects, setProjects] = useState([])
-  const [tasks, setTasks] = useState(() => JSON.parse(localStorage.getItem('projectvault-tasks') || JSON.stringify(initialTasks)))
+  const [tasks, setTasks] = useState([])
+  const [users, setUsers] = useState([])
   const [mobileNav, setMobileNav] = useState(false)
   const [showComposer, setShowComposer] = useState(false)
   const [showProjectWizard, setShowProjectWizard] = useState(false)
   const [editingProjectId, setEditingProjectId] = useState(null)
   const [projectForm, setProjectForm] = useState({ name: '', description: '', problemStatement: '', solution: '', github: '', drive: '', deployed: '', image: '', members: [{ name: '', email: '', batch: '', department: '' }, { name: '', email: '', batch: '', department: '' }, { name: '', email: '', batch: '', department: '' }], mentor: '' })
-  const [guidance, setGuidance] = useState(() => JSON.parse(localStorage.getItem('projectvault-guidance') || '[]'))
-  const [requests, setRequests] = useState(() => JSON.parse(localStorage.getItem('projectvault-requests') || JSON.stringify([
-    { id: 1, project: 'Smart HealthNet', from: 'Aman Kumar', type: 'collaboration', status: 'pending' },
-    { id: 2, project: 'Campus Connect', from: 'Dr. Meera Patel', type: 'mentor', status: 'pending' },
-  ])))
-  const [requestFeedback, setRequestFeedback] = useState(() => JSON.parse(localStorage.getItem('projectvault-request-feedback') || '[]'))
+  const [guidance, setGuidance] = useState([])
+  const [requests, setRequests] = useState([])
+  const [requestFeedback, setRequestFeedback] = useState([])
   const [toast, setToast] = useState('')
   const [authError, setAuthError] = useState('')
   const [proofTask, setProofTask] = useState(null)
   const [showRoleTool, setShowRoleTool] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [processSteps, setProcessSteps] = useState(() => JSON.parse(localStorage.getItem('projectvault-process') || JSON.stringify(defaultProcess)))
-  const [messages, setMessages] = useState(() => JSON.parse(localStorage.getItem('projectvault-messages') || JSON.stringify([{ id: 1, channel: 'smart-healthnet', author: 'Riya Shah', role: 'Student', text: 'Has everyone reviewed the API contract?', time: '10:42 AM' }, { id: 2, channel: 'mentor-room', author: 'Dr. Meera Patel', role: 'Mentor', text: 'I left feedback on the milestone. Let us discuss it here.', time: 'Yesterday' }])).map((message) => ({ ...message, channel: message.channel || 'smart-healthnet' })))
-  const [knowledge, setKnowledge] = useState(() => JSON.parse(localStorage.getItem('projectvault-knowledge') || JSON.stringify(seedKnowledge)))
-  const [settings, setSettings] = useState(() => JSON.parse(localStorage.getItem('projectvault-settings') || JSON.stringify({ department: 'Computer Science', batch: '2024 · Final year', notifications: true, weeklyDigest: true })))
-  const [achievements, setAchievements] = useState(() => JSON.parse(localStorage.getItem('projectvault-achievements') || JSON.stringify([
-    { title: 'Best HealthTech project', year: '2025', detail: 'Smart HealthNet won the institutional showcase.', tag: 'HealthTech' },
-    { title: 'Innovation showcase finalist', year: '2024', detail: 'Campus Connect reached the final round.', tag: 'Innovation' },
-  ])))
+  const [processSteps, setProcessSteps] = useState([])
+  const [messages, setMessages] = useState([])
+  const [knowledge, setKnowledge] = useState([])
+  const [settings, setSettings] = useState({ department: '', batch: '', notifications: true, weeklyDigest: true })
+  const [achievements, setAchievements] = useState([])
   const [overviewSummary, setOverviewSummary] = useState({ activeMentors: 0, activeProjects: 0, groupsCovered: 0, tasksDue: 0 })
   const [dataLoading, setDataLoading] = useState(false)
 
@@ -148,8 +127,9 @@ function App() {
 
     let cancelled = false
     setDataLoading(true)
-    Promise.all([apiRequest('/api/projects'), apiRequest('/api/tasks'), apiRequest('/api/achievements'), apiRequest('/api/overview-summary')])
-      .then(([remoteProjects, remoteTasks, remoteAchievements, remoteOverviewSummary]) => {
+    const usersRequest = user?.role === 'hod' ? apiRequest('/api/users') : apiRequest('/api/users?role=mentor')
+    Promise.all([apiRequest('/api/projects'), apiRequest('/api/tasks'), apiRequest('/api/achievements'), apiRequest('/api/overview-summary'), usersRequest, apiRequest('/api/guidance'), apiRequest('/api/requests'), apiRequest('/api/feedback'), apiRequest('/api/messages'), apiRequest('/api/knowledge'), apiRequest('/api/process')])
+      .then(([remoteProjects, remoteTasks, remoteAchievements, remoteOverviewSummary, remoteUsers, remoteGuidance, remoteRequests, remoteFeedback, remoteMessages, remoteKnowledge, remoteProcess]) => {
         if (cancelled) return
         setTasks(remoteTasks)
         setOverviewSummary(remoteOverviewSummary)
@@ -158,6 +138,14 @@ function App() {
           return projectTasks.length ? { ...project, progress: calculateProjectProgress(projectTasks) } : project
         }))
         setAchievements(remoteAchievements)
+        setUsers(remoteUsers)
+        setGuidance(remoteGuidance)
+        setRequests(remoteRequests.map((request) => ({ ...request, id: request._id })))
+        setRequestFeedback(remoteFeedback.map((item) => ({ ...item, id: item._id })))
+        setMessages(remoteMessages.map((message) => ({ ...message, id: message._id, time: new Date(message.createdAt).toLocaleString() })))
+        setKnowledge(remoteKnowledge)
+        setProcessSteps(remoteProcess.steps || [])
+        setSettings({ department: user?.department || '', batch: user?.batch || '', notifications: user?.notifications ?? true, weeklyDigest: user?.weeklyDigest ?? true })
       })
       .catch((error) => {
         if (!cancelled) {
@@ -170,19 +158,12 @@ function App() {
       })
 
     return () => { cancelled = true }
-  }, [screen])
+  }, [screen, user?.role])
 
   const completeTask = (index) => {
     const task = tasks[index]
-    if (task?._id) {
-      updateTaskStatus(task._id, { done: false, proof: '', approved: false })
-      return
-    }
-    setTasks((current) => {
-      const nextTasks = current.map((task, taskIndex) => taskIndex === index ? { ...task, done: false, proof: '', approvalPending: false, approved: false, feedback: '' } : task)
-      localStorage.setItem('projectvault-tasks', JSON.stringify(nextTasks))
-      return nextTasks
-    })
+    if (!task?._id) return
+    updateTaskStatus(task._id, { done: false, proof: '', approved: false })
   }
 
   const submitTaskProof = (event) => {
@@ -190,15 +171,18 @@ function App() {
     const proof = event.currentTarget.proof.value.trim()
     const task = tasks[proofTask.index]
     const updatedTasks = tasks.map((item, index) => index === proofTask.index ? { ...item, proof, approvalPending: true, approved: false, feedback: '' } : item)
-    const request = { id: `task-${Date.now()}`, taskId: task._id || task.id, taskTitle: task.title, project: task.project, from: user?.name || 'Student', type: 'task-completion', status: 'pending', proof }
-    if (task?._id) apiRequest(`/api/tasks/${task._id}`, { method: 'PUT', body: JSON.stringify({ proof, approved: false }) }).catch((error) => setToast(error.message || 'Could not save task proof.'))
-    setTasks(updatedTasks)
-    setRequests([request, ...requests])
-    localStorage.setItem('projectvault-tasks', JSON.stringify(updatedTasks))
-    localStorage.setItem('projectvault-requests', JSON.stringify([request, ...requests]))
-    setProofTask(null)
-    setToast('Proof sent to mentor for approval')
-    setTimeout(() => setToast(''), 2400)
+    const request = { taskId: task._id, taskTitle: task.title, project: task.project, type: 'task-completion', status: 'pending', proof }
+    if (!task?._id) return
+    Promise.all([
+      apiRequest(`/api/tasks/${task._id}`, { method: 'PUT', body: JSON.stringify({ proof, approved: false }) }),
+      apiRequest('/api/requests', { method: 'POST', body: JSON.stringify(request) }),
+    ]).then(([, createdRequest]) => {
+      setTasks(updatedTasks)
+      setRequests((current) => [{ ...createdRequest, id: createdRequest._id }, ...current])
+      setProofTask(null)
+      setToast('Proof sent to mentor for approval')
+      setTimeout(() => setToast(''), 2400)
+    }).catch((error) => setToast(error.message || 'Could not save task proof.'))
   }
 
   const createProject = (event) => {
@@ -209,20 +193,25 @@ function App() {
     const existingProject = editingProjectId ? projects.find((project) => project.id === editingProjectId) : null
     const memberNames = existingProject?.members?.length ? existingProject.members : [user?.name || 'Student', ...invitedMembers.map((member) => member.name || member.email)]
     const projectData = { name: projectForm.name.trim(), type: 'New project', year: projectForm.members[0]?.batch?.trim() || 'New project', abstract: projectForm.description.trim() || 'Project abstract to be added.', problemStatement: projectForm.problemStatement.trim() || projectForm.description.trim() || 'Problem statement to be added.', solution: projectForm.solution.trim() || 'Solution approach to be added.', progress: 0, color: 'green', members: memberNames, memberDetails: invitedMembers, mentor: projectForm.mentor || 'Mentor to be requested', github: projectForm.github.trim(), drive: projectForm.drive.trim(), deployed: projectForm.deployed.trim(), image: safeImage, gallery: [safeImage] }
-    const nextProjects = editingProjectId ? projects.map((project) => project.id === editingProjectId ? { ...project, ...projectData, id: editingProjectId, progress: project.progress, color: project.color } : project) : [...projects, { id: Date.now().toString(), ...projectData }]
-    setProjects(nextProjects)
-    localStorage.setItem('projectvault-projects', JSON.stringify(nextProjects))
-    if (!editingProjectId) {
-      const projectId = nextProjects[nextProjects.length - 1].id
+    const saveRequest = editingProjectId
+      ? apiRequest(`/api/projects/${editingProjectId}`, { method: 'PUT', body: JSON.stringify(projectData) })
+      : apiRequest('/api/projects', { method: 'POST', body: JSON.stringify(projectData) })
+    saveRequest.then((savedProject) => {
+      const normalizedProject = normalizeProjects([savedProject])[0]
+      const nextProjects = editingProjectId ? projects.map((project) => project.id === editingProjectId ? normalizedProject : project) : [normalizedProject, ...projects]
+      setProjects(nextProjects)
+      if (!editingProjectId) {
+        const projectId = normalizedProject.id
       const nextRequests = [
-        ...invitedMembers.map((member, index) => ({ id: `${projectId}-student-${index}`, project: projectData.name, from: user?.name || 'Student', to: member.email, invitee: member, type: 'collaboration', status: 'pending' })),
-        ...(projectForm.mentor ? [{ id: `${projectId}-mentor`, project: projectData.name, from: user?.name || 'Student', to: projectForm.mentor, type: 'mentor', status: 'pending' }] : []),
+        ...invitedMembers.map((member) => ({ project: projectData.name, to: member.email, invitee: member, type: 'collaboration', status: 'pending' })),
+        ...(projectForm.mentor ? [{ project: projectData.name, to: projectForm.mentor, type: 'mentor', status: 'pending' }] : []),
       ]
-      const persistedRequests = [...nextRequests, ...requests]
-      setRequests(persistedRequests)
-      localStorage.setItem('projectvault-requests', JSON.stringify(persistedRequests))
-      setToast(nextRequests.length ? 'Project created and requests sent' : 'Project created')
-    } else setToast('Project updated')
+      Promise.all(nextRequests.map((request) => apiRequest('/api/requests', { method: 'POST', body: JSON.stringify(request) }))).then((createdRequests) => {
+        setRequests((current) => [...createdRequests.map((request) => ({ ...request, id: request._id })), ...current])
+        setToast(nextRequests.length ? 'Project created and requests sent' : 'Project created')
+      }).catch((error) => setToast(error.message || 'Project requests could not be saved.'))
+      } else setToast('Project updated')
+    }).catch((error) => setToast(error.message || 'Project could not be saved.'))
     setProjectForm({ name: '', description: '', problemStatement: '', solution: '', github: '', drive: '', deployed: '', image: '', members: [{ name: '', email: '', batch: '', department: '' }, { name: '', email: '', batch: '', department: '' }, { name: '', email: '', batch: '', department: '' }], mentor: '' })
     setEditingProjectId(null)
     setShowComposer(false)
@@ -240,31 +229,24 @@ function App() {
   const deleteProject = (project) => {
     if (!['mentor', 'hod'].includes(user?.role)) return
     if (!window.confirm(`Delete ${project.name}? This will remove the project and its pending requests.`)) return
-    const nextProjects = projects.filter((item) => item.id !== project.id)
-    const nextRequests = requests.filter((request) => request.project !== project.name)
-    setProjects(nextProjects)
-    setRequests(nextRequests)
-    setSelectedProject(null)
-    localStorage.setItem('projectvault-projects', JSON.stringify(nextProjects))
-    localStorage.setItem('projectvault-requests', JSON.stringify(nextRequests))
-    setToast('Project deleted')
-    setTimeout(() => setToast(''), 2400)
+    apiRequest(`/api/projects/${project.id}`, { method: 'DELETE' }).then(() => {
+      setProjects((current) => current.filter((item) => item.id !== project.id))
+      setRequests((current) => current.filter((request) => request.project !== project.name))
+      setSelectedProject(null)
+      setToast('Project deleted')
+      setTimeout(() => setToast(''), 2400)
+    }).catch((error) => setToast(error.message || 'Project could not be deleted.'))
   }
 
   const handleRequestDecision = (requestId, status, note = '') => {
-    const selected = requests.find((request) => request.id === requestId)
+    const selected = requests.find((request) => (request._id || request.id) === requestId)
     if (!selected) return
 
     if (selected.type === 'task-completion') {
       const nextTasks = tasks.map((task) => (task._id || task.id) === selected.taskId ? { ...task, done: status === 'accepted', approvalPending: false, approved: status === 'accepted', feedback: note || (status === 'accepted' ? 'Completion approved by mentor.' : 'Completion proof was rejected. Please update the work and submit proof again.'), completedAt: status === 'accepted' ? new Date().toLocaleString() : '' } : task)
       setTasks(nextTasks)
       if (selected.taskId) apiRequest(`/api/tasks/${selected.taskId}`, { method: 'PUT', body: JSON.stringify({ done: status === 'accepted', approved: status === 'accepted', completedAt: status === 'accepted' ? new Date().toISOString() : '' }) }).catch((error) => setToast(error.message || 'Could not save task approval.'))
-      localStorage.setItem('projectvault-tasks', JSON.stringify(nextTasks))
     }
-
-    const next = requests.filter((request) => request.id !== requestId)
-    setRequests(next)
-    localStorage.setItem('projectvault-requests', JSON.stringify(next))
 
     const feedbackEntry = {
       id: Date.now(),
@@ -279,18 +261,19 @@ function App() {
       createdAt: new Date().toLocaleString(),
     }
 
-    const nextFeedback = [feedbackEntry, ...requestFeedback]
-    setRequestFeedback(nextFeedback)
-    localStorage.setItem('projectvault-request-feedback', JSON.stringify(nextFeedback))
-    setToast(status === 'accepted' ? 'Request accepted' : 'Request rejected')
-    setTimeout(() => setToast(''), 2400)
+    apiRequest(`/api/requests/${requestId}`, { method: 'PUT', body: JSON.stringify({ status, message: feedbackEntry.message }) }).then(({ feedback }) => {
+      setRequests((current) => current.filter((request) => (request._id || request.id) !== requestId))
+      setRequestFeedback((current) => [{ ...feedback, id: feedback._id }, ...current])
+      setToast(status === 'accepted' ? 'Request accepted' : 'Request rejected')
+      setTimeout(() => setToast(''), 2400)
+    }).catch((error) => setToast(error.message || 'Request decision could not be saved.'))
   }
 
   const addTask = (event) => {
     event.preventDefault()
     const form = event.currentTarget
     const title = form.title.value.trim()
-    const project = form.project.value.trim() || 'Smart HealthNet'
+    const project = form.project.value.trim()
     const due = form.due.value.trim() || 'This week'
     const priority = form.priority.value || 'Medium'
 
@@ -342,6 +325,7 @@ function App() {
           method: 'POST',
           body: JSON.stringify({
             ...formData,
+            secret: form.secret?.value,
             department: settings.department,
             batch: settings.batch,
           }),
@@ -367,11 +351,12 @@ function App() {
     }
   }
   const signOut = () => { localStorage.removeItem('projectvault-user'); localStorage.removeItem('projectvault-token'); setUser(null); setScreen('launch') }
-  const requestGuidance = (event) => { event.preventDefault(); const next = [...guidance, { id: Date.now(), project: event.currentTarget.project.value, message: event.currentTarget.message.value, from: user.name, status: 'Sent' }]; setGuidance(next); localStorage.setItem('projectvault-guidance', JSON.stringify(next)); event.currentTarget.reset(); setToast('Guidance request sent'); setTimeout(() => setToast(''), 2400) }
-  const saveProcess = (nextProcess) => { setProcessSteps(nextProcess); localStorage.setItem('projectvault-process', JSON.stringify(nextProcess)); setToast('Project process updated'); setTimeout(() => setToast(''), 2400) }
-  const sendMessage = (event, channel = 'group') => { event.preventDefault(); const next = [...messages, { id: Date.now(), channel, author: user.name, role: roles[user.role].label, text: event.currentTarget.message.value, time: 'Just now' }]; setMessages(next); localStorage.setItem('projectvault-messages', JSON.stringify(next)); event.currentTarget.reset() }
+  const requestGuidance = (event) => { event.preventDefault(); const payload = { project: event.currentTarget.project.value, message: event.currentTarget.message.value, status: 'Sent' }; apiRequest('/api/guidance', { method: 'POST', body: JSON.stringify(payload) }).then((created) => { setGuidance((current) => [created, ...current]); event.currentTarget.reset(); setToast('Guidance request sent'); setTimeout(() => setToast(''), 2400) }).catch((error) => setToast(error.message || 'Guidance could not be saved.')) }
+  const onSubmitReport = (event) => { event.preventDefault(); const projectName = event.currentTarget.project.value; const message = event.currentTarget.message.value; apiRequest('/api/reports', { method: 'POST', body: JSON.stringify({ projectName, student: user?.name, tasks: tasks.filter((task) => task.project === projectName), guidance: [{ message }], week: new Date().toISOString().slice(0, 10) }) }).then(() => { setGuidance((current) => [{ project: projectName, message, from: user?.name, status: 'Submitted' }, ...current]); event.currentTarget.reset(); setToast('Report saved to MongoDB'); setTimeout(() => setToast(''), 2400) }).catch((error) => setToast(error.message || 'Report could not be saved.')) }
+  const saveProcess = (nextProcess) => { apiRequest('/api/process', { method: 'PUT', body: JSON.stringify({ steps: nextProcess }) }).then((saved) => { setProcessSteps(saved.steps); setToast('Project process updated'); setTimeout(() => setToast(''), 2400) }).catch((error) => setToast(error.message || 'Project process could not be saved.')) }
+  const sendMessage = (event, channel = 'group') => { event.preventDefault(); apiRequest('/api/messages', { method: 'POST', body: JSON.stringify({ channel, text: event.currentTarget.message.value }) }).then((created) => { setMessages((current) => [...current, { ...created, id: created._id, time: new Date(created.createdAt).toLocaleString() }]); event.currentTarget.reset() }).catch((error) => setToast(error.message || 'Message could not be saved.')) }
   const searchedProjects = projects.filter((project) => `${project.name} ${project.type} ${project.abstract} ${project.year}`.toLowerCase().includes(searchQuery.toLowerCase()))
-  const visibleUserProjects = searchedProjects.filter((project) => user?.role !== 'student' || (Array.isArray(project.members) ? project.members.includes(user?.name) : project.name === 'Smart HealthNet'))
+  const visibleUserProjects = searchedProjects.filter((project) => user?.role !== 'student' || (Array.isArray(project.members) && project.members.includes(user?.name)))
   const userTasks = tasks.filter((task) => !task.userId || task.userId === user?.id || visibleUserProjects.some((project) => project.name === task.project))
   const openTaskCount = userTasks.filter((task) => !task.done).length
   const completedTasks = userTasks.filter((task) => task.done)
@@ -394,8 +379,9 @@ function App() {
   window.__projectvaultOverviewProjects = projects
   window.__projectvaultOverviewTasks = tasks
   window.__projectvaultOverviewUser = user
-  const addKnowledge = (event) => { event.preventDefault(); const item = { id: Date.now(), title: event.currentTarget.title.value, type: event.currentTarget.type.value, tag: event.currentTarget.tag.value, owner: user.name, year: '2026', description: event.currentTarget.description.value, link: event.currentTarget.link.value }; const next = [item, ...knowledge]; setKnowledge(next); localStorage.setItem('projectvault-knowledge', JSON.stringify(next)); setToast('Resource added to Knowledge'); setTimeout(() => setToast(''), 2400) }
-  const saveSettings = (event) => { event.preventDefault(); const nextUser = { ...user, name: event.currentTarget.name.value, email: event.currentTarget.email.value }; const nextSettings = { ...settings, department: event.currentTarget.department.value, batch: event.currentTarget.batch.value, notifications: event.currentTarget.notifications.checked, weeklyDigest: event.currentTarget.weeklyDigest.checked }; setUser(nextUser); setSettings(nextSettings); localStorage.setItem('projectvault-user', JSON.stringify(nextUser)); localStorage.setItem('projectvault-settings', JSON.stringify(nextSettings)); setToast('Settings saved'); setTimeout(() => setToast(''), 2400) }
+  const addKnowledge = (event) => { event.preventDefault(); const payload = { title: event.currentTarget.title.value, type: event.currentTarget.type.value, tag: event.currentTarget.tag.value, year: new Date().getFullYear().toString(), description: event.currentTarget.description.value, link: event.currentTarget.link.value }; apiRequest('/api/knowledge', { method: 'POST', body: JSON.stringify(payload) }).then((created) => { setKnowledge((current) => [created, ...current]); setToast('Resource added to Knowledge'); setTimeout(() => setToast(''), 2400) }).catch((error) => setToast(error.message || 'Resource could not be saved.')) }
+  const saveSettings = (event) => { event.preventDefault(); const payload = { name: event.currentTarget.name.value, email: event.currentTarget.email.value, department: event.currentTarget.department.value, batch: event.currentTarget.batch.value, notifications: event.currentTarget.notifications.checked, weeklyDigest: event.currentTarget.weeklyDigest.checked }; apiRequest('/api/me', { method: 'PUT', body: JSON.stringify(payload) }).then((updatedUser) => { setUser(updatedUser); setSettings(payload); localStorage.setItem('projectvault-user', JSON.stringify(updatedUser)); setToast('Settings saved'); setTimeout(() => setToast(''), 2400) }).catch((error) => setToast(error.message || 'Settings could not be saved.')) }
+  const addUser = (event) => { event.preventDefault(); const form = event.currentTarget; apiRequest('/api/users', { method: 'POST', body: JSON.stringify({ name: form.name.value.trim(), email: form.email.value.trim(), password: form.password.value, role: form.role.value, department: form.department.value.trim(), batch: form.batch.value.trim() }) }).then((createdUser) => { setUsers((current) => [...current, createdUser].sort((a, b) => a.role.localeCompare(b.role) || a.name.localeCompare(b.name))); form.reset(); setToast('User added to MongoDB'); setTimeout(() => setToast(''), 2400) }).catch((error) => setToast(error.message || 'User could not be added.')) }
   const onAddAchievement = () => { const title = window.prompt('Achievement title'); if (!title?.trim()) return; const detail = window.prompt('Achievement detail') || ''; apiRequest('/api/achievements', { method: 'POST', body: JSON.stringify({ title: title.trim(), detail, tag: 'Department', year: new Date().getFullYear().toString() }) }).then((created) => { setAchievements((current) => [created, ...current]); setToast('Achievement published'); setTimeout(() => setToast(''), 2400) }).catch((error) => setToast(error.message || 'Achievement could not be published.')) }
 
   const toggleTheme = () => setTheme((current) => current === 'light' ? 'dark' : 'light')
@@ -474,14 +460,17 @@ function App() {
             <div className="secondary-column">
               <div className="health-panel"><div className="panel-top"><div><p className="eyebrow">Project health</p><h2>{workspaceHealth === 'Good' ? 'Looking steady' : workspaceHealth === 'Watch' ? 'Needs attention' : 'Getting started'}</h2></div><span className="status-pill healthy"><span /> {workspaceHealth}</span></div><div className="health-score"><div className="score-ring"><strong>{workspaceHealthScore}</strong><span>/100</span></div><div><p>Across your visible projects</p><button className="text-button" onClick={() => setActivePage('Analytics')}>View analysis <ArrowUpRight size={14} /></button></div></div><div className="health-bars"><HealthBar label="Task completion" value={taskCompletion} color="coral" /><HealthBar label="Project progress" value={projectProgress} color="blue" /><HealthBar label="On-time delivery" value={onTimeRate} color="yellow" /></div></div>
 
-              <div className="activity-panel"><div className="section-heading"><div><p className="eyebrow">Live feed</p><h2>Recent activity</h2></div><Activity size={17} className="muted-icon" /></div><ActivityItem avatar="RS" color="purple" text={<><strong>Riya Shah</strong> commented on <b>API integration</b></>} time="12 min ago" /><ActivityItem avatar="GH" color="dark" text={<><strong>GitHub</strong> recorded 8 new commits</>} time="2 hours ago" icon={<GitBranch size={13} />} /><ActivityItem avatar="MP" color="green" text={<><strong>Meera Patel</strong> submitted the weekly report</>} time="Yesterday" icon={<FileText size={13} />} /><ActivityItem avatar="AK" color="orange" text={<><strong>Arjun Kumar</strong> joined your team</>} time="Yesterday" /></div>
+              <div className="activity-panel"><div className="section-heading"><div><p className="eyebrow">Live feed</p><h2>Recent activity</h2></div><Activity size={17} className="muted-icon" /></div>{tasks.length || requests.length ? <>
+                {tasks.slice(0, 3).map((task) => <ActivityItem key={task._id || task.id || task.title} avatar={task.project.slice(0, 2).toUpperCase()} color="green" text={<><strong>{task.project}</strong> has <b>{task.title}</b> in progress</>} time={task.due || 'This week'} />)}
+                {requests.slice(0, 2).map((request) => <ActivityItem key={request._id || request.id || request.project} avatar="RQ" color="purple" text={<><strong>{request.from || 'Team request'}</strong> updated <b>{request.project || 'a project'}</b></>} time={request.status || 'New'} />)}
+              </> : <div className="empty-state compact"><Activity size={20} /><span>No recent activity yet.</span></div>}</div>
             </div>
           </section>
-          </> : <LegacyRoleOverview role={user?.role} onOpen={(page) => setActivePage(page)} /> : <WorkspacePage page={activePage} projects={projects} tasks={tasks} user={user} guidance={guidance} messages={messages} knowledge={knowledge} settings={settings} processSteps={processSteps} searchQuery={searchQuery} selectedProject={selectedProject} onSelectProject={setSelectedProject} onChat={() => setActivePage('Project Chat')} onNewProject={(project) => project ? openProjectEditor(project) : setShowProjectWizard(true)} onEditProject={openProjectEditor} onDeleteProject={deleteProject} onToggleTask={completeTask} onRequestProof={(task, index) => setProofTask({ task, index })} onGuidance={requestGuidance} onSendMessage={sendMessage} onAddKnowledge={addKnowledge} onSaveSettings={saveSettings} onSaveProcess={saveProcess} canSeePrivate={user?.role !== 'student'} onRequestDecision={handleRequestDecision} onAddTask={addTask} onUpdateTask={updateTaskStatus} requests={requests} requestFeedback={requestFeedback} achievements={achievements} onAddAchievement={onAddAchievement} />}
+          </> : <RoleOverview role={user?.role} onOpen={(page) => setActivePage(page)} /> : <WorkspacePage page={activePage} projects={projects} tasks={tasks} users={users} user={user} guidance={guidance} messages={messages} knowledge={knowledge} settings={settings} processSteps={processSteps} searchQuery={searchQuery} selectedProject={selectedProject} onSelectProject={setSelectedProject} onChat={() => setActivePage('Project Chat')} onNewProject={(project) => project ? openProjectEditor(project) : setShowProjectWizard(true)} onEditProject={openProjectEditor} onDeleteProject={deleteProject} onToggleTask={completeTask} onRequestProof={(task, index) => setProofTask({ task, index })} onGuidance={requestGuidance} onSendMessage={sendMessage} onAddKnowledge={addKnowledge} onSaveSettings={saveSettings} onSaveProcess={saveProcess} canSeePrivate={user?.role !== 'student'} onRequestDecision={handleRequestDecision} onAddTask={addTask} onUpdateTask={updateTaskStatus} requests={requests} requestFeedback={requestFeedback} achievements={achievements} onAddAchievement={onAddAchievement} onAddUser={addUser} />}
         </div>
       </main>
 
-      {showProjectWizard && <ProjectWizard form={projectForm} setForm={setProjectForm} editing={Boolean(editingProjectId)} onClose={() => { setShowProjectWizard(false); setEditingProjectId(null) }} onSubmit={createProject} />}
+      {showProjectWizard && <ProjectWizard form={projectForm} setForm={setProjectForm} mentors={users.filter((item) => item.role === 'mentor')} editing={Boolean(editingProjectId)} onClose={() => { setShowProjectWizard(false); setEditingProjectId(null) }} onSubmit={createProject} />}
 
       {showComposer && <div className="modal-backdrop" onClick={() => setShowComposer(false)}><form className="composer-modal" onSubmit={createProject} onClick={(event) => event.stopPropagation()}><div className="modal-heading"><div><p className="eyebrow">My projects</p><h2>Start a new project</h2></div><button type="button" className="icon-button" onClick={() => setShowComposer(false)} aria-label="Close dialog"><X size={18} /></button></div><label>Project title<input name="name" autoFocus required value={projectForm.name} onChange={(event) => setProjectForm({ ...projectForm, name: event.target.value })} placeholder="e.g. Smart HealthNet" /></label><label>About the project<textarea name="description" value={projectForm.description} onChange={(event) => setProjectForm({ ...projectForm, description: event.target.value })} placeholder="Abstract and overview" rows="3" /></label><label>Problem statement<textarea name="problemStatement" value={projectForm.problemStatement} onChange={(event) => setProjectForm({ ...projectForm, problemStatement: event.target.value })} placeholder="Describe the real problem this project is solving..." rows="3" /></label><label>Solution approach<textarea name="solution" value={projectForm.solution} onChange={(event) => setProjectForm({ ...projectForm, solution: event.target.value })} placeholder="Explain the proposed solution, method, or technology..." rows="3" /></label><label>Project image URL<input name="image" type="url" value={projectForm.image} onChange={(event) => setProjectForm({ ...projectForm, image: event.target.value })} placeholder="https://images.unsplash.com/..." /></label><label>GitHub source code<input name="github" type="url" value={projectForm.github} onChange={(event) => setProjectForm({ ...projectForm, github: event.target.value })} placeholder="https://github.com/your-team/repo" /></label><label>Google Drive documentation<input name="drive" type="url" value={projectForm.drive} onChange={(event) => setProjectForm({ ...projectForm, drive: event.target.value })} placeholder="https://drive.google.com/..." /></label><label>Deployed project link<input name="deployed" type="url" value={projectForm.deployed} onChange={(event) => setProjectForm({ ...projectForm, deployed: event.target.value })} placeholder="https://your-project.example" /></label><div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setShowComposer(false)}>Cancel</button><button type="submit" className="primary-button"><Plus size={17} /> Create project</button></div></form></div>}
       {proofTask && <div className="modal-backdrop" onClick={() => setProofTask(null)}><form className="composer-modal" onSubmit={submitTaskProof} onClick={(event) => event.stopPropagation()}><div className="modal-heading"><div><p className="eyebrow">Task completion</p><h2>Submit proof</h2></div><button type="button" className="icon-button" onClick={() => setProofTask(null)} aria-label="Close dialog"><X size={18} /></button></div><p className="proof-task-title">{proofTask.task.title}</p><label>Proof of completion<textarea name="proof" required rows="4" placeholder="Add a result, document link, commit link, or short explanation..." /></label><div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setProofTask(null)}>Cancel</button><button className="primary-button" type="submit"><Check size={16} /> Complete task</button></div></form></div>}
@@ -508,7 +497,8 @@ function HealthBar({ label, value, color }) { return <div className="health-bar"
 function ActivityItem({ avatar, color, text, time, icon }) { return <div className="activity-item"><div className={`activity-avatar ${color}`}>{icon || avatar}</div><div><p>{text}</p><span>{time}</span></div></div> }
 function LegacyRoleOverview({ role, onOpen }) { const mentor = role === 'mentor'; return <section className={`role-overview role-overview-${role}`}><div className="role-hero"><div><p className="eyebrow">{mentor ? 'Mentor command center' : 'HOD command center'}</p><h2>{mentor ? 'Your groups, moving forward.' : 'Department progress, in one view.'}</h2><p>{mentor ? 'Review group momentum, assign the next task, and keep every team supported.' : 'Track mentors, working groups, achievements, and academic outcomes across the department.'}</p></div><span className="status-pill healthy"><span /> Live workspace</span></div><div className="role-metrics"><MetricCard icon={Users} label={mentor ? 'Working groups' : 'Active mentors'} value={mentor ? '03' : '08'} delta={mentor ? '12 students' : '24 groups covered'} tone="green" /><MetricCard icon={FolderKanban} label="Active projects" value={mentor ? '03' : '24'} delta="Across current cycle" tone="coral" /><MetricCard icon={Check} label="Tasks due" value={mentor ? '09' : '38'} delta="Needs attention" tone="blue" /></div><div className="role-columns"><div className="panel role-group-panel"><div className="section-heading"><div><p className="eyebrow">{mentor ? 'Assigned groups' : 'Department groups'}</p><h3>Working groups</h3></div><button className="text-button" onClick={() => onOpen('My Groups')}>View all <ArrowUpRight size={14} /></button></div><RoleGroup name="Smart HealthNet" mentor="Dr. Meera Patel" progress="72%" tasks="4 tasks due" /><RoleGroup name="Campus Connect" mentor="Prof. K. Rao" progress="48%" tasks="3 tasks due" /><RoleGroup name="EcoTrack" mentor="Dr. Anil Thomas" progress="31%" tasks="2 tasks due" /></div><div className="panel role-action-panel"><p className="eyebrow">Next actions</p><h3>{mentor ? 'Keep teams unblocked' : 'Department watchlist'}</h3><button className="action-row" onClick={() => onOpen('Task Schedule')}><Check size={16} /><span>Schedule and assign tasks</span><ArrowUpRight size={14} /></button><button className="action-row" onClick={() => onOpen('Group Reports')}><FileText size={16} /><span>Generate group report</span><ArrowUpRight size={14} /></button><button className="action-row" onClick={() => onOpen(mentor ? 'Announcements' : 'Achievements')}><Sparkles size={16} /><span>{mentor ? 'Post announcement' : 'Publish achievement'}</span><ArrowUpRight size={14} /></button></div></div></section> }
 function RoleGroup({ name, mentor, progress, tasks }) { return <div className="role-group-row"><div className="workspace-avatar">{name.slice(0, 2).toUpperCase()}</div><div><strong>{name}</strong><span>{mentor} · {tasks}</span><div className="progress-track"><span className="blue" style={{ width: progress }} /></div></div><b>{progress}</b></div> }
-function WorkspacePage({ page, projects, tasks, user, guidance, messages, knowledge, settings, processSteps, searchQuery, selectedProject, onSelectProject, onChat, onNewProject, onEditProject, onDeleteProject, onToggleTask, onRequestProof, onGuidance, onSendMessage, onAddKnowledge, onSaveSettings, onSaveProcess, canSeePrivate, onRequestDecision, onAddTask, onUpdateTask, requests = [], requestFeedback = [], achievements = [], onAddAchievement }) {
+function LiveModulePage({ page, content }) { return <section className="workspace-page"><PageHeader eyebrow={page} title={page} description={content.description || 'This module is ready for live academic data.'} /><div className="panel empty-state"><FolderKanban size={24} /><strong>No live records yet</strong><span>This workspace will populate with live project, mentor, and student data from MongoDB.</span></div></section> }
+function WorkspacePage({ page, projects, tasks, users = [], user, guidance, messages, knowledge, settings, processSteps, searchQuery, selectedProject, onSelectProject, onChat, onNewProject, onEditProject, onDeleteProject, onToggleTask, onRequestProof, onGuidance, onSendMessage, onAddKnowledge, onSaveSettings, onSaveProcess, canSeePrivate, onRequestDecision, onAddTask, onUpdateTask, requests = [], requestFeedback = [], achievements = [], onAddAchievement, onAddUser }) {
   const pageContent = {
     'All Projects': { eyebrow: 'Project portfolio', title: 'All student projects', description: 'Every year, every abstract, one searchable academic vault.' },
     'My Projects': { eyebrow: 'Your portfolio', title: 'My projects', description: 'Edit your project information and manage collaboration requests.' },
@@ -535,26 +525,27 @@ function WorkspacePage({ page, projects, tasks, user, guidance, messages, knowle
   const visibleProjects = page === 'My Projects' ? searchedProjects.filter((project) => {
     if (user?.role === 'hod') return !project.completed
     if (user?.role === 'mentor') return !project.completed && project.mentor !== 'To be assigned'
-    return Array.isArray(project.members) ? project.members.includes(user?.name) || project.name === 'Smart HealthNet' : project.name === 'Smart HealthNet'
+    return Array.isArray(project.members) ? project.members.includes(user?.name) : false
   }) : searchedProjects
   if (selectedProject && page === 'All Projects') return <ProjectDetail project={selectedProject} canSeePrivate={canSeePrivate} onBack={() => onSelectProject(null)} onChat={onChat} />
   if (page === 'All Projects' || page === 'My Projects') return <section className="workspace-page"><div className="workspace-page-header"><div><p className="eyebrow">{pageContent.eyebrow}</p><h2>{pageContent.title}</h2><p>{pageContent.description}</p></div>{page === 'My Projects' && <button className="primary-button" onClick={onNewProject}><Plus size={18} /> New project</button>}</div><div className="project-gallery">{visibleProjects.map((project) => <div className="managed-project-card" key={project.id || project.name}><ProjectCard project={project} canSeePrivate={canSeePrivate} mine={page === 'My Projects'} onSelect={() => onSelectProject(project)} onEdit={() => onNewProject(project)} /><div className="managed-project-actions">{['mentor', 'hod'].includes(user?.role) && <button className="text-button danger" onClick={() => onDeleteProject?.(project)}><X size={14} /> Delete project</button>}</div></div>)}</div></section>
   if (page === 'AI Center') return <AICenter projects={projects} />
   if (page === 'Certificates') return <CertificatesPage />
   if (page === 'Project Process') return <ProcessPage steps={processSteps} canEdit={user?.role === 'mentor' || user?.role === 'hod'} onSave={onSaveProcess} />
-  if (page === 'Project Chat') return <ChatPage messages={messages} onSend={onSendMessage} />
-  if (page === 'Task Schedule') return <TaskSchedulePage tasks={tasks} requests={requests} onAddTask={onAddTask} onUpdateTask={onUpdateTask} onRequestDecision={onRequestDecision} />
+  if (page === 'Project Chat') return <ChatPage projects={projects} messages={messages} onSend={onSendMessage} />
+  if (page === 'Task Schedule') return <TaskSchedulePage projects={projects} tasks={tasks} requests={requests} onAddTask={onAddTask} onUpdateTask={onUpdateTask} onRequestDecision={onRequestDecision} />
   if (page === 'Mentor Workspace') return <MentorWorkspacePage requests={requests} onRequestDecision={onRequestDecision} />
-  if (page === 'Reports') return <ReportsPage projects={projects} tasks={tasks} guidance={guidance} onGuidance={onGuidance} />
+  if (page === 'Reports') return <ReportsPage projects={projects} tasks={tasks} guidance={guidance} onGuidance={onGuidance} onSubmitReport={onSubmitReport} />
   if (page === 'Analytics') return <AnalyticsPage projects={projects} />
   if (page === 'Project Similarity') return <SimilarityPage projects={projects} />
   if (page === 'Alumni') return <AlumniPage />
   if (page === 'Achievements') return <AchievementsPage achievements={achievements} canAdd={user?.role === 'hod'} onAdd={onAddAchievement} />
-  if (['Mentors & Groups', 'Students', 'Teams', 'Project Monitoring'].includes(page)) return <LegacyRoleModulePage page={page} role={user?.role} projects={projects} tasks={tasks} />
+  if (page === 'Students') return <DepartmentUsersPage users={users} onAddUser={onAddUser} />
+  if (['Mentors & Groups', 'Teams', 'Project Monitoring'].includes(page)) return <RoleModulePage page={page} role={user?.role} projects={projects} tasks={tasks} users={users} />
   if (page === 'Notifications' && requests.length) return <RequestInbox requests={requests} onRequestDecision={onRequestDecision} />
-  if (page === 'Notifications') return <section className="workspace-page"><PageHeader {...pageContent} /><div className="notification-list panel">{requestFeedback.length ? requestFeedback.map((item) => <NotificationItem key={item.id} title={`${item.status === 'accepted' ? 'Request approved' : 'Request updated'} · ${item.project}`} detail={`${item.from}: ${item.message}`} />) : <><NotificationItem title="Project health review due" detail="Smart HealthNet has a milestone review this week." /><NotificationItem title="New guidance channel" detail="Student and mentor requests are now handled inside the project details." /><NotificationItem title="AI project assistant updated" detail="The assistant now highlights project fit, duplicates, and improvement suggestions." /></> }</div></section>
+  if (page === 'Notifications') return <section className="workspace-page"><PageHeader {...pageContent} /><div className="notification-list panel">{requestFeedback.length ? requestFeedback.map((item) => <NotificationItem key={item.id} title={`${item.status === 'accepted' ? 'Request approved' : 'Request updated'} · ${item.project}`} detail={`${item.from}: ${item.message}`} />) : <div className="empty-state compact"><Bell size={20} /><span>No notifications yet.</span></div>}</div></section>
   if (page === 'Settings') return <SettingsPage user={user} settings={settings} onSave={onSaveSettings} />
-  return <ModulePage page={page} role={user?.role} content={pageContent} tasks={tasks} onToggleTask={onToggleTask} onRequestProof={onRequestProof} />
+  return <LiveModulePage page={page} content={pageContent} />
 }
 
 function PageHeader({ eyebrow, title, description }) { return <div className="workspace-page-header"><div><p className="eyebrow">{eyebrow}</p><h2>{title}</h2><p>{description}</p></div>{title === 'Reports' && <button className="secondary-button" onClick={() => window.dispatchEvent(new Event('projectvault:download-report'))}><FileText size={15} /> Download document</button>}</div> }
@@ -601,13 +592,7 @@ function SimilarityPage({ projects = [] }) {
 }
 
 function AlumniPage() {
-  const alumni = [
-    { name: 'Ananya Rao', role: 'ML Engineer', batch: '2022', tag: 'AI' },
-    { name: 'Karan Mehta', role: 'Product Designer', batch: '2021', tag: 'UX' },
-    { name: 'Sonal Gupta', role: 'HealthTech Founder', batch: '2020', tag: 'HealthTech' },
-  ]
-
-  return <section className="workspace-page"><PageHeader eyebrow="Industry network" title="Alumni" description="Connect with graduated student mentors and project leaders." /><div className="project-gallery">{alumni.map((person) => <div className="panel project-card" key={person.name}><div className="project-symbol coral"><Users size={18} /></div><div className="project-card-body"><div className="project-title"><strong>{person.name}</strong><span>{person.tag}</span></div><p className="project-year">{person.batch} batch</p><p className="project-abstract">{person.role}</p></div></div>)}</div></section>
+  return <section className="workspace-page"><PageHeader eyebrow="Industry network" title="Alumni" description="Connect with graduated student mentors and project leaders." /><div className="empty-state"><Users size={24} /><strong>No alumni records yet</strong><span>Alumni data will appear here when it is added to MongoDB.</span></div></section>
 }
 
 function AchievementsPage({ achievements = [], canAdd, onAdd }) {
@@ -641,261 +626,32 @@ function ProjectCard({ project, canSeePrivate, mine, onSelect, onEdit }) { const
 
 function ProjectDetail({ project, canSeePrivate, onBack, onChat }) { const members = Array.isArray(project.members) ? project.members : [`${project.members || 1} project members`]; return <section className="workspace-page project-detail"><button className="back-link" onClick={onBack}><ArrowRight size={15} /> Back to all projects</button><div className="detail-hero"><div className={`project-symbol ${project.color}`}><FolderKanban size={25} /></div><div><p className="eyebrow">{project.year || 'Academic project'} · {project.type}</p><h2>{project.name}</h2><p>{project.abstract || project.description || 'Project abstract to be added.'}</p></div><span className="status-pill healthy"><span /> {project.completed ? 'Completed' : 'In progress'}</span></div><div className="detail-grid"><div className="panel detail-section"><p className="eyebrow">Project overview</p><h3>About this project</h3><p className="detail-copy">{project.abstract || project.description || 'This team is building a practical solution and documenting its progress through ProjectVault.'}</p><h4>Technology stack</h4><div className="tech-stack">{(project.tech || ['React', 'Node.js', 'MongoDB']).map((tech) => <span key={tech}>{tech}</span>)}</div></div><div className="panel detail-section"><p className="eyebrow">People</p><h3>Working candidates</h3><div className="people-list">{members.map((member) => <div key={member}><div className="profile-avatar">{member.slice(0, 2).toUpperCase()}</div><strong>{member}</strong><span>Student · Project member</span></div>)}</div><h4>Mentor</h4><div className="mentor-line"><div className="profile-avatar">{(project.mentor || 'TM').slice(0, 2).toUpperCase()}</div><strong>{project.mentor || 'To be assigned'}</strong></div></div></div><div className="detail-actions">{canSeePrivate ? <><a className="secondary-button" href={project.github || 'https://github.com/'} target="_blank" rel="noreferrer"><GitBranch size={15} /> GitHub source</a><a className="secondary-button" href={project.drive || 'https://drive.google.com/'} target="_blank" rel="noreferrer"><FileText size={15} /> Google Drive docs</a></> : <span className="private-note"><LockKeyhole size={14} /> GitHub and Drive links are visible to group members, mentors, and HODs</span>}{project.deployed && <a className="primary-button" href={project.deployed} target="_blank" rel="noreferrer"><ArrowUpRight size={15} /> Open deployed project</a>}<button className="primary-button" onClick={onChat}><MessageCircle size={15} /> Message the team</button></div></section> }
 
-function ChatPage({ messages, onSend }) { const [channel, setChannel] = useState('smart-healthnet'); const channels = [{ id: 'smart-healthnet', label: 'Smart HealthNet', detail: '4 members' }, { id: 'campus-connect', label: 'Campus Connect', detail: '6 members' }, { id: 'mentor-room', label: 'Mentor room', detail: 'Mentors and faculty' }, { id: 'student-network', label: 'Student network', detail: 'All student projects' }]; const visible = messages.filter((message) => message.channel === channel); return <section className="workspace-page"><PageHeader eyebrow="Private collaboration" title="Project chat" description="Each project has its own private room. Messages never cross between groups." /><div className="chat-layout"><div className="chat-channels panel">{channels.map((item) => <button className={channel === item.id ? 'selected' : ''} key={item.id} onClick={() => setChannel(item.id)}><div className="channel-avatar">{item.label.slice(0, 2)}</div><div><strong>{item.label}</strong><span>{item.detail}</span></div></button>)}</div><div className="chat-panel panel"><div className="chat-room-heading"><div><p className="eyebrow">Private room</p><h3>{channels.find((item) => item.id === channel)?.label}</h3></div><span className="audience-chip">Only this group</span></div><div className="message-list">{visible.map((message) => <div className="message-row" key={message.id}><div className="activity-avatar green">{message.author.slice(0, 2).toUpperCase()}</div><div><div className="message-author"><strong>{message.author}</strong><span>{message.role} · {message.time}</span></div><p>{message.text}</p></div></div>)}{!visible.length && <div className="empty-state compact"><MessageCircle size={20} /><span>No messages in this room yet.</span></div>}</div><form className="chat-form" onSubmit={(event) => onSend(event, channel)}><input name="message" required placeholder="Message this group..." /><button className="primary-button" type="submit"><Send size={15} /> Send</button></form></div></div></section> }
-const studentRoster = [
-  ['Arjun Nair', 'CSE · Final year', 'Smart HealthNet', 'Dr. Meera Patel', 'On track', 88],
-  ['Neha Joshi', 'IT · Third year', 'Campus Connect', 'Prof. K. Rao', 'Progressing', 74],
-  ['Meera Das', 'ECE · Final year', 'EcoTrack', 'Dr. Anil Thomas', 'Needs review', 62],
-  ['Aman Kumar', 'CSE · Third year', 'Campus Connect', 'Prof. K. Rao', 'On track', 72],
-  ['Vikram Singh', 'EEE · Final year', 'EcoTrack', 'Dr. Anil Thomas', 'Monitoring', 58],
-  ['Riya Shah', 'CSE · Final year', 'Smart HealthNet', 'Dr. Meera Patel', 'Healthy', 91],
-  ['Kavya Menon', 'IT · Final year', 'StudySphere', 'Prof. K. Rao', 'On track', 83],
-  ['Rahul Verma', 'CSE · Third year', 'SkillSpring', 'Prof. K. Rao', 'Progressing', 67],
-  ['Isha Kapoor', 'ECE · Third year', 'SignBridge', 'Prof. K. Rao', 'Monitoring', 55],
-  ['Dev Patel', 'CSE · Final year', 'AgriSense', 'Dr. Neha Sinha', 'Healthy', 86],
-  ['Sana Khan', 'IT · Final year', 'Biometric Lens', 'Dr. Neha Sinha', 'On track', 78],
-  ['Aditya Rao', 'CSE · Third year', 'AquaGuard', 'Dr. Neha Sinha', 'Review', 56],
-  ['Pooja Iyer', 'EEE · Final year', 'SafeRoute', 'Prof. Raghav Menon', 'Healthy', 81],
-  ['Nikhil Bansal', 'CSE · Third year', 'TransitIQ', 'Prof. Raghav Menon', 'Progressing', 63],
-  ['Ananya Sen', 'IT · Final year', 'HeritageAR', 'Dr. Priya Nair', 'Healthy', 89],
-  ['Rohan Gupta', 'CSE · Final year', 'CivicLens', 'Dr. Priya Nair', 'On track', 76],
-  ['Simran Kaur', 'ECE · Third year', 'FoodLens', 'Dr. Priya Nair', 'Watching', 49],
-  ['Yash Thakur', 'CSE · Final year', 'CareCircle', 'Dr. Meera Patel', 'Progressing', 69],
-  ['Diya Malhotra', 'IT · Third year', 'MindMend', 'Dr. Meera Patel', 'Review', 58],
-  ['Karan Shah', 'CSE · Final year', 'SolarGrid', 'Dr. Anil Thomas', 'Monitoring', 61],
-  ['Nandini Rao', 'EEE · Third year', 'EcoTrack', 'Dr. Anil Thomas', 'On track', 73],
-  ['Harsh Vyas', 'CSE · Final year', 'Smart HealthNet', 'Dr. Meera Patel', 'Healthy', 84],
-  ['Aditi Sharma', 'IT · Final year', 'Campus Connect', 'Prof. K. Rao', 'Progressing', 71],
-  ['Manav Sethi', 'CSE · Third year', 'StudySphere', 'Prof. K. Rao', 'On track', 79],
-  ['Tanya Bose', 'ECE · Final year', 'SignBridge', 'Prof. K. Rao', 'Monitoring', 52],
-  ['Sahil Jain', 'CSE · Final year', 'AgriSense', 'Dr. Neha Sinha', 'Healthy', 87],
-  ['Mitali Ghosh', 'IT · Third year', 'Biometric Lens', 'Dr. Neha Sinha', 'Review', 64],
-  ['Farhan Ali', 'CSE · Final year', 'AquaGuard', 'Dr. Neha Sinha', 'Progressing', 59],
-  ['Ishita Roy', 'EEE · Final year', 'SafeRoute', 'Prof. Raghav Menon', 'Healthy', 77],
-  ['Vivek Reddy', 'CSE · Third year', 'TransitIQ', 'Prof. Raghav Menon', 'Monitoring', 54],
-  ['Aarav Kulkarni', 'IT · Final year', 'HeritageAR', 'Dr. Priya Nair', 'On track', 82],
-  ['Priya Desai', 'CSE · Final year', 'CivicLens', 'Dr. Priya Nair', 'Progressing', 68],
-  ['Mohit Arora', 'ECE · Third year', 'FoodLens', 'Dr. Priya Nair', 'Watching', 46],
-  ['Shruti Nair', 'CSE · Final year', 'CareCircle', 'Dr. Meera Patel', 'Healthy', 80],
-  ['Omkar Patil', 'IT · Third year', 'MindMend', 'Dr. Meera Patel', 'Review', 57],
-  ['Lavanya Krishnan', 'CSE · Final year', 'SolarGrid', 'Dr. Anil Thomas', 'On track', 70],
-  ['Kabir Singh', 'EEE · Third year', 'EcoTrack', 'Dr. Anil Thomas', 'Monitoring', 43],
-  ['Nisha Thomas', 'CSE · Final year', 'Smart HealthNet', 'Dr. Meera Patel', 'Healthy', 93],
-  ['Varun Mehta', 'IT · Final year', 'Campus Connect', 'Prof. K. Rao', 'Progressing', 66],
-  ['Sanya Prasad', 'CSE · Third year', 'AgriSense', 'Dr. Neha Sinha', 'On track', 75],
-].map(([name, academic, project, mentor, status, progress]) => ({
-  name,
-  academic,
-  project,
-  mentor,
-  detail: `${academic} · ${project} · ${mentor}`,
-  status,
-  level: `${progress}%`,
-}))
+function ChatPage({ projects = [], messages, onSend }) { const channels = projects.map((project) => ({ id: project.name, label: project.name, detail: `${Array.isArray(project.members) ? project.members.length : 0} members` })); const [channel, setChannel] = useState(channels[0]?.id || ''); const visible = messages.filter((message) => message.channel === channel); return <section className="workspace-page"><PageHeader eyebrow="Private collaboration" title="Project chat" description="Each project has its own private room. Messages never cross between groups." />{channels.length ? <div className="chat-layout"><div className="chat-channels panel">{channels.map((item) => <button className={channel === item.id ? 'selected' : ''} key={item.id} onClick={() => setChannel(item.id)}><div className="channel-avatar">{item.label.slice(0, 2)}</div><div><strong>{item.label}</strong><span>{item.detail}</span></div></button>)}</div><div className="chat-panel panel"><div className="chat-room-heading"><div><p className="eyebrow">Private room</p><h3>{channels.find((item) => item.id === channel)?.label}</h3></div><span className="audience-chip">Only this group</span></div><div className="message-list">{visible.map((message) => <div className="message-row" key={message.id}><div className="activity-avatar green">{message.author.slice(0, 2).toUpperCase()}</div><div><div className="message-author"><strong>{message.author}</strong><span>{message.role} · {message.time}</span></div><p>{message.text}</p></div></div>)}{!visible.length && <div className="empty-state compact"><MessageCircle size={20} /><span>No messages in this room yet.</span></div>}</div><form className="chat-form" onSubmit={(event) => onSend(event, channel)}><input name="message" required placeholder="Message this group..." /><button className="primary-button" type="submit"><Send size={15} /> Send</button></form></div></div> : <div className="empty-state"><MessageCircle size={24} /><strong>No project chat rooms yet</strong><span>Create a project to open its MongoDB-backed chat room.</span></div>}</section> }
+function DepartmentUsersPage({ users = [], onAddUser }) {
+  return <section className="workspace-page"><PageHeader eyebrow="Department directory" title="Students and staff" description="Manage the real student, mentor, and HOD records stored in MongoDB." /><form className="panel inline-form" onSubmit={onAddUser}><input name="name" required placeholder="Full name" /><input name="email" type="email" required placeholder="Email" /><input name="password" type="password" required placeholder="Temporary password" /><select name="role" defaultValue="student"><option value="student">Student</option><option value="mentor">Mentor</option><option value="hod">HOD</option></select><input name="department" placeholder="Department" /><input name="batch" placeholder="Batch / year" /><button className="primary-button" type="submit"><Plus size={15} /> Add user</button></form><div className="hod-module-grid">{users.map((item) => <article className="hod-module-card panel" key={item.id}><div className="hod-card-header"><span className="hod-index">{item.role.toUpperCase()}</span><span className="hod-status active">Active</span></div><h3>{item.name}</h3><p>{item.email}</p><p>{item.department || 'Department not provided'} · {item.batch || 'Batch not provided'}</p></article>)}{!users.length && <div className="empty-state"><Users size={24} /><strong>No department users yet</strong><span>Add the first real student, mentor, or HOD record above.</span></div>}</div></section>
+}
 
-const teamRoster = studentRoster.map((student, index) => {
-  return {
-    name: `${student.project} · Team ${String.fromCharCode(65 + (index % 6))}`,
-    detail: `${student.academic} · Lead: ${student.name} · ${student.mentor} · ${3 + (index % 4)} members`,
-    status: student.status === 'Healthy' || student.status === 'On track' ? 'On track' : student.status,
-    level: student.level,
-  }
-})
-
-const monitoringRoster = studentRoster.map((student, index) => {
-  const progress = Number.parseInt(student.level, 10)
-  const risk = progress >= 75 ? 'Low risk' : progress >= 55 ? 'Moderate risk' : 'High risk'
-  return {
-    name: `${student.project} · Review ${String(index + 1).padStart(2, '0')}`,
-    detail: `${risk} · ${student.academic} · ${student.mentor} · ${2 + (index % 3)} tasks due`,
-    status: risk === 'Low risk' ? 'Healthy' : risk === 'Moderate risk' ? 'Monitoring' : 'Intervention',
-    level: student.level,
-  }
-})
-
-function RoleModulePage({ page, role, projects = [], tasks = [] }) {
+function RoleModulePage({ page, role, projects = [], tasks = [], users = [] }) {
   const activeProjects = projects.filter((project) => !project.completed)
   const taskCount = (projectName) => tasks.filter((task) => task.project === projectName && !task.done).length
   const statusFor = (project) => project.progress >= 75 ? 'Healthy' : project.progress >= 45 ? 'Monitoring' : 'Intervention'
-  const studentItems = [...new Map(activeProjects.flatMap((project) => (Array.isArray(project.members) ? project.members : []).map((name) => [name, { name, detail: `${project.name} · ${project.mentor || 'To be assigned'}`, status: statusFor(project), level: `${project.progress || 0}%` }]))).values()]
+  const studentItems = users.filter((user) => user.role === 'student').map((student) => {
+    const studentProjects = activeProjects.filter((project) => Array.isArray(project.members) && project.members.includes(student.name))
+    const progress = studentProjects.length ? Math.round(studentProjects.reduce((total, project) => total + Number(project.progress || 0), 0) / studentProjects.length) : 0
+    return { name: student.name, detail: `${student.department || 'Department not provided'} · ${student.batch || 'Batch not provided'}`, status: studentProjects.length ? statusFor({ progress }) : 'Unassigned', level: `${progress}%` }
+  })
   const items = page === 'Students' ? studentItems : activeProjects.map((project) => ({
     name: page === 'Teams' ? `${project.name} team` : project.name,
     detail: page === 'Teams' ? `${project.mentor || 'To be assigned'} · ${(project.members || []).length} members` : `${project.mentor || 'To be assigned'} · ${taskCount(project.name)} tasks due`,
     status: statusFor(project),
     level: `${project.progress || 0}%`,
   }))
-  const mentors = [...new Set(activeProjects.map((project) => project.mentor).filter((mentor) => mentor && mentor !== 'To be assigned'))]
-  const groupedMentors = mentors.map((mentor) => ({ name: mentor, groups: activeProjects.filter((project) => project.mentor === mentor) }))
+  const mentors = users.filter((user) => user.role === 'mentor').map((user) => user.name)
+  const groupedMentors = mentors.map((mentor) => ({ name: mentor, groups: activeProjects.filter((project) => project.mentor === mentor) })).filter((mentor) => mentor.groups.length > 0)
   const title = page === 'Project Monitoring' ? 'Project monitoring' : page === 'Mentors & Groups' ? 'Mentors and groups' : page
   const description = page === 'Students' ? 'Students currently assigned to active project groups.' : page === 'Teams' ? 'Active project teams and their current delivery pace.' : page === 'Project Monitoring' ? 'Live progress and open work across active projects.' : 'Every mentor and the active groups currently under their guidance.'
 
   return <section className="workspace-page"><PageHeader eyebrow={role === 'hod' ? 'HOD authority' : 'Mentor workspace'} title={title} description={description} />{page === 'Mentors & Groups' ? <div className="hod-module-grid">{groupedMentors.map((mentor) => <article className="hod-module-card panel" key={mentor.name}><div className="hod-card-header"><span className="hod-index">{String(mentor.groups.length).padStart(2, '0')}</span><span className="hod-status healthy">{mentor.groups.length} groups</span></div><h3>{mentor.name}</h3>{mentor.groups.map((project) => <p key={project.name}>{project.name} · {project.progress || 0}% progress</p>)}</article>)}{!groupedMentors.length && <div className="empty-state"><Users size={24} /><strong>No mentors assigned</strong><span>Assign a mentor to an active project to see them here.</span></div>}</div> : <div className="hod-module-grid">{items.map((item) => <article className="hod-module-card panel" key={item.name}><div className="hod-card-header"><span className="hod-index">{item.name.slice(0, 2).toUpperCase()}</span><span className={`hod-status ${String(item.status).toLowerCase()}`}>{item.status}</span></div><h3>{item.name}</h3><p>{item.detail}</p><div className="hod-progress-wrap"><div className="hod-progress"><span style={{ width: item.level }} /></div><strong>{item.level}</strong></div></article>)}{!items.length && <div className="empty-state"><FolderKanban size={24} /><strong>No live records</strong><span>Create an active project to populate this view.</span></div>}</div>}</section>
-}
-
-function LegacyRoleModulePage({ page, role, projects, tasks }) {
-  const hod = role === 'hod'
-  const mentorData = [
-    {
-      name: 'Dr. Meera Patel',
-      total: '3 groups',
-      summary: 'HealthTech lead',
-      groups: [
-        { name: 'Smart HealthNet', focus: 'AI health monitoring', students: '4 students', progress: 72, status: 'Healthy' },
-        { name: 'CareCircle', focus: 'Digital healthcare access', students: '3 students', progress: 64, status: 'Stable' },
-        { name: 'MindMend', focus: 'Mental wellness analytics', students: '4 students', progress: 58, status: 'Review' },
-      ],
-    },
-    {
-      name: 'Prof. K. Rao',
-      total: '4 groups',
-      summary: 'EdTech specialist',
-      groups: [
-        { name: 'Campus Connect', focus: 'Student engagement network', students: '6 students', progress: 48, status: 'Monitoring' },
-        { name: 'StudySphere', focus: 'Collaborative learning spaces', students: '5 students', progress: 61, status: 'Stable' },
-        { name: 'SkillSpring', focus: 'Career and skills guidance', students: '4 students', progress: 55, status: 'Review' },
-        { name: 'SignBridge', focus: 'Inclusion and access support', students: '3 students', progress: 46, status: 'Watching' },
-      ],
-    },
-    {
-      name: 'Dr. Anil Thomas',
-      total: '2 groups',
-      summary: 'Climate & IoT mentor',
-      groups: [
-        { name: 'EcoTrack', focus: 'Campus sustainability analytics', students: '3 students', progress: 31, status: 'Intervention' },
-        { name: 'SolarGrid', focus: 'Renewable energy monitoring', students: '4 students', progress: 44, status: 'Monitoring' },
-      ],
-    },
-    {
-      name: 'Dr. Neha Sinha',
-      total: '3 groups',
-      summary: 'AI and research mentor',
-      groups: [
-        { name: 'AgriSense', focus: 'Smart agriculture diagnostics', students: '4 students', progress: 81, status: 'Healthy' },
-        { name: 'Biometric Lens', focus: 'Secure recognition systems', students: '3 students', progress: 67, status: 'Stable' },
-        { name: 'AquaGuard', focus: 'Water quality monitoring', students: '5 students', progress: 56, status: 'Review' },
-      ],
-    },
-    {
-      name: 'Prof. Raghav Menon',
-      total: '2 groups',
-      summary: 'Smart city systems',
-      groups: [
-        { name: 'SafeRoute', focus: 'Urban mobility safety', students: '4 students', progress: 69, status: 'Healthy' },
-        { name: 'TransitIQ', focus: 'Public transport analytics', students: '3 students', progress: 52, status: 'Monitoring' },
-      ],
-    },
-    {
-      name: 'Dr. Priya Nair',
-      total: '3 groups',
-      summary: 'Product and UX mentor',
-      groups: [
-        { name: 'HeritageAR', focus: 'Cultural preservation tools', students: '4 students', progress: 75, status: 'Healthy' },
-        { name: 'CivicLens', focus: 'Citizen feedback dashboards', students: '5 students', progress: 64, status: 'Stable' },
-        { name: 'FoodLens', focus: 'Food sourcing and waste insights', students: '3 students', progress: 43, status: 'Watching' },
-      ],
-    },
-  ]
-
-  const [selectedMentor, setSelectedMentor] = useState(mentorData[0])
-
-  const sectionContent = {
-    'Students': {
-      title: 'Students',
-      description: 'View all 40 students with their academic details, project assignment, mentor, status, and current progress.',
-      items: studentRoster,
-    },
-    Teams: {
-      title: 'Teams',
-      description: 'Track all 40 department teams, their academic stream, team lead, mentor, member count, and current delivery pace.',
-      items: teamRoster,
-    },
-    'Project Monitoring': {
-      title: 'Project monitoring',
-      description: 'Monitor all 40 project reviews with risk level, academic stream, mentor ownership, tasks due, status, and completion progress.',
-      items: monitoringRoster,
-    },
-    'Mentors & Groups': {
-      title: 'Mentors and groups',
-      description: 'Every mentor and the groups currently under their guidance, with live progress and delivery details.',
-    },
-  }[page] || { title: page, description: 'Academic operations and project visibility.', items: [] }
-
-  return (
-    <section className="workspace-page">
-      <PageHeader eyebrow={hod ? 'HOD authority' : 'Mentor workspace'} title={sectionContent.title} description={sectionContent.description} />
-
-      {page === 'Mentors & Groups' ? (
-        <div className="mentor-layout">
-          <div className="mentor-list panel">
-            {mentorData.map((mentor) => (
-              <button
-                type="button"
-                key={mentor.name}
-                className={`mentor-item ${selectedMentor?.name === mentor.name ? 'selected' : ''}`}
-                onClick={() => setSelectedMentor(mentor)}
-              >
-                <div className="workspace-avatar">{mentor.name.split(' ').map((part) => part[0]).slice(0, 2).join('')}</div>
-                <div>
-                  <strong>{mentor.name}</strong>
-                  <span>{mentor.total} · {mentor.summary}</span>
-                </div>
-                <span className="mentor-pill">{Math.round(mentor.groups.reduce((sum, group) => sum + group.progress, 0) / mentor.groups.length)}%</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="mentor-detail panel">
-            {selectedMentor ? (
-              <>
-                <p className="eyebrow">Mentor focus</p>
-                <h3>{selectedMentor.name}</h3>
-                <p className="mentor-summary">{selectedMentor.summary}</p>
-                {selectedMentor.groups.map((group) => (
-                  <div className="mentor-group-row" key={`${selectedMentor.name}-${group.name}`}>
-                    <div className="mentor-group-head">
-                      <strong>{group.name}</strong>
-                      <span>{group.focus}</span>
-                    </div>
-                    <div className="mentor-group-meta">
-                      <span>{group.students}</span>
-                      <span>{group.status}</span>
-                    </div>
-                    <div className="hod-progress-wrap">
-                      <div className="hod-progress">
-                        <span style={{ width: `${group.progress}%` }} />
-                      </div>
-                      <strong>{group.progress}%</strong>
-                    </div>
-                  </div>
-                ))}
-              </>
-            ) : (
-              <div className="empty-state compact"><Users size={20} /><span>Select a mentor to view their groups.</span></div>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="hod-module-grid">
-          {(sectionContent.items || []).map((item, index) => (
-            <article className="hod-module-card panel" key={`${sectionContent.title}-${item.name || index}`}>
-              <div className="hod-card-header">
-                <span className="hod-index">{String(index + 1).padStart(2, '0')}</span>
-                <span className={`hod-status ${String(item.status).toLowerCase().replace(/\s+/g, '-')}`}>{item.status}</span>
-              </div>
-              <h3>{item.name}</h3>
-              <p>{item.detail}</p>
-              <div className="hod-progress-wrap">
-                <div className="hod-progress">
-                  <span style={{ width: `${Number.parseInt(item.level || '0', 10)}%` }} />
-                </div>
-                <strong>{item.level}</strong>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-    </section>
-  )
 }
 
 function AICenter({ projects }) { const [query, setQuery] = useState(''); const matches = query ? projects.filter((project) => `${project.name} ${project.type} ${project.abstract}`.toLowerCase().includes(query.toLowerCase())) : []; return <section className="workspace-page"><PageHeader eyebrow="Project intelligence" title="AI project assistant" description="Ask about a project domain to find relevant completed work and starting points." /><div className="ai-panel panel"><div className="ai-prompt"><Sparkles size={21} /><div><h3>What are you building?</h3><p>Try “health sector”, “climate”, or “education”.</p></div></div><div className="ai-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Describe your project domain..." /></div>{query && <div className="ai-results"><p className="eyebrow">{matches.length} related projects found</p>{matches.slice(0, 6).map((project) => <div className="ai-result" key={project.id}><div className={`project-symbol ${project.color}`}><FolderKanban size={16} /></div><div><strong>{project.name}</strong><span>{project.year} · {project.type}</span><p>{project.abstract}</p></div></div>)}{!matches.length && <div className="empty-state compact"><Sparkles size={20} /><span>No matching archive projects yet. Try another domain.</span></div>}</div>}</div></section> }
@@ -907,11 +663,7 @@ function RequestInbox({ requests, onRequestDecision }) {
 }
 
 function MentorWorkspacePage({ requests = [], onRequestDecision }) {
-  const queue = requests.length ? requests : [
-    { id: 1, project: 'Smart HealthNet', from: 'Aman Kumar', type: 'collaboration', status: 'pending' },
-    { id: 2, project: 'Campus Connect', from: 'Riya Shah', type: 'mentor', status: 'pending' },
-    { id: 3, project: 'EcoTrack', from: 'Meera Das', type: 'collaboration', status: 'pending' },
-  ]
+  const queue = requests
 
   return (
     <section className="workspace-page">
@@ -925,9 +677,9 @@ function MentorWorkspacePage({ requests = [], onRequestDecision }) {
         </div>
 
         <div className="ops-grid">
-          <div className="ops-stat"><strong>03</strong><span>active groups</span></div>
-          <div className="ops-stat"><strong>12</strong><span>students supported</span></div>
-          <div className="ops-stat"><strong>76%</strong><span>average progress</span></div>
+          <div className="ops-stat"><strong>0</strong><span>active groups</span></div>
+          <div className="ops-stat"><strong>0</strong><span>students supported</span></div>
+          <div className="ops-stat"><strong>0%</strong><span>average progress</span></div>
         </div>
 
         <div className="ops-actions">
@@ -957,21 +709,23 @@ function MentorWorkspacePage({ requests = [], onRequestDecision }) {
             </div>
           </div>
         ))}
+        {!queue.length && <div className="empty-state compact"><Users size={20} /><span>No mentor requests yet.</span></div>}
       </div>
     </section>
   )
 }
 
-function TaskSchedulePage({ tasks = [], requests = [], onAddTask, onUpdateTask, onRequestDecision }) {
+function TaskSchedulePage({ projects = [], tasks = [], requests = [], onAddTask, onUpdateTask, onRequestDecision }) {
   const completionRequests = requests.filter((request) => request.type === 'task-completion' && request.status === 'pending')
-  return <section className="workspace-page"><PageHeader eyebrow="Execution planning" title="Task schedule" description="Create, assign, and monitor every task across active student projects." /><div className="panel"><form className="guidance-form" onSubmit={onAddTask}><label>Task title<input name="title" required placeholder="e.g. Complete API testing" /></label><label>Project<select name="project" defaultValue="Smart HealthNet"><option>Smart HealthNet</option><option>Campus Connect</option><option>EcoTrack</option></select></label><label>Due date<input name="due" defaultValue="This week" /></label><label>Priority<select name="priority" defaultValue="Medium"><option>High</option><option>Medium</option><option>Low</option></select></label><button className="primary-button" type="submit"><Plus size={15} /> Add task</button></form></div>{completionRequests.length > 0 && <div className="panel task-approval-panel"><div className="section-heading"><div><p className="eyebrow">Mentor review</p><h3>Completion requests</h3></div></div>{completionRequests.map((request) => <div className="group-row" key={request.id}><div className="workspace-avatar">{request.from.slice(0, 2).toUpperCase()}</div><div><strong>{request.taskTitle}</strong><span>{request.from} · {request.project}</span><small className="task-proof">Proof: {request.proof}</small></div><div className="request-actions"><button className="text-button" onClick={() => onRequestDecision?.(request.id, 'accepted')}>Approve</button><button className="text-button danger" onClick={() => onRequestDecision?.(request.id, 'rejected')}>Reject</button></div></div>)}</div>}<div className="panel task-schedule-list">{tasks.length ? tasks.map((task) => <div className="group-row" key={task.id || `${task.title}-${task.project}`}><div className="workspace-avatar">{task.project.slice(0, 2).toUpperCase()}</div><div><strong>{task.title}</strong><span>{task.project} · {task.due} · {task.priority} · {task.done ? 'Completed' : task.approvalPending ? 'Pending mentor approval' : 'Open'}</span></div><div className="request-actions">{task.approvalPending ? <span className="pending-label">Pending review</span> : <button className="text-button" onClick={() => onUpdateTask?.(task.id, { done: !task.done, approved: task.done ? false : true })}>{task.done ? 'Reopen' : 'Complete'}</button>}</div></div>) : <div className="empty-state compact"><Check size={20} /><span>No tasks assigned yet.</span></div>}</div></section>
+  return <section className="workspace-page"><PageHeader eyebrow="Execution planning" title="Task schedule" description="Create, assign, and monitor every task across active student projects." /><div className="panel"><form className="guidance-form" onSubmit={onAddTask}><label>Task title<input name="title" required placeholder="e.g. Complete API testing" /></label><label>Project<select name="project" defaultValue=""><option value="" disabled>Select a project</option>{projects.map((project) => <option key={project.id || project.name} value={project.name}>{project.name}</option>)}</select></label><label>Due date<input name="due" defaultValue="This week" /></label><label>Priority<select name="priority" defaultValue="Medium"><option>High</option><option>Medium</option><option>Low</option></select></label><button className="primary-button" type="submit" disabled={!projects.length}><Plus size={15} /> Add task</button></form></div>{completionRequests.length > 0 && <div className="panel task-approval-panel"><div className="section-heading"><div><p className="eyebrow">Mentor review</p><h3>Completion requests</h3></div></div>{completionRequests.map((request) => <div className="group-row" key={request.id}><div className="workspace-avatar">{request.from.slice(0, 2).toUpperCase()}</div><div><strong>{request.taskTitle}</strong><span>{request.from} · {request.project}</span><small className="task-proof">Proof: {request.proof}</small></div><div className="request-actions"><button className="text-button" onClick={() => onRequestDecision?.(request.id, 'accepted')}>Approve</button><button className="text-button danger" onClick={() => onRequestDecision?.(request.id, 'rejected')}>Reject</button></div></div>)}</div>}<div className="panel task-schedule-list">{tasks.length ? tasks.map((task) => <div className="group-row" key={task._id || `${task.title}-${task.project}`}><div className="workspace-avatar">{task.project.slice(0, 2).toUpperCase()}</div><div><strong>{task.title}</strong><span>{task.project} · {task.due} · {task.priority} · {task.done ? 'Completed' : task.approvalPending ? 'Pending mentor approval' : 'Open'}</span></div><div className="request-actions">{task.approvalPending ? <span className="pending-label">Pending review</span> : <button className="text-button" onClick={() => onUpdateTask?.(task._id, { done: !task.done, approved: task.done ? false : true })}>{task.done ? 'Reopen' : 'Complete'}</button>}</div></div>) : <div className="empty-state compact"><Check size={20} /><span>No tasks assigned yet.</span></div>}</div></section>
 }
 
-function ReportsPage({ projects = [], tasks = [], guidance = [], onGuidance }) {
+function ReportsPage({ projects = [], tasks = [], guidance = [], onGuidance, onSubmitReport }) {
   const activeProjects = projects.filter((project) => !project.completed)
   const reportGroups = [...new Map(activeProjects.map((project) => [project.name, project])).values()]
   const getTasks = (projectName) => tasks.filter((task) => task.project === projectName)
   const getGuidance = (projectName) => guidance.filter((item) => item.project === projectName).slice(-1)[0]
+  if (!reportGroups.length) return <section className="workspace-page"><PageHeader eyebrow="Group reporting" title="Reports" description="Each active project has one distinct report with its own progress, tasks, and guidance." /><div className="empty-state"><FileText size={24} /><strong>No active projects available</strong><span>Create or assign an active project before submitting a report.</span></div></section>
   const downloadReport = (project) => {
     const projectTasks = getTasks(project.name)
     const completed = projectTasks.filter((task) => task.done).length
@@ -984,7 +738,7 @@ function ReportsPage({ projects = [], tasks = [], guidance = [], onGuidance }) {
     URL.revokeObjectURL(url)
   }
 
-  return <section className="workspace-page"><PageHeader eyebrow="Group reporting" title="Reports" description="Each active project has one distinct report with its own progress, tasks, and guidance." /><div className="report-group-grid">{reportGroups.map((project) => { const projectTasks = getTasks(project.name); const completed = projectTasks.filter((task) => task.done).length; const rate = projectTasks.length ? Math.round((completed / projectTasks.length) * 100) : 0; const latestGuidance = getGuidance(project.name); return <article className="panel report-group-card" key={project.name}><div className="section-heading"><div><p className="eyebrow">Group report</p><h3>{project.name}</h3></div><button className="secondary-button" onClick={() => downloadReport(project)}><FileText size={15} /> Download</button></div><p>{project.mentor || 'Mentor to be assigned'} · {project.progress || 0}% project progress</p><div className="metric-grid compact-grid"><MetricCard icon={Check} label="Completed" value={String(completed)} delta={`${projectTasks.length} total tasks`} tone="green" /><MetricCard icon={Target} label="Open" value={String(projectTasks.length - completed)} delta="Needs attention" tone="blue" /><MetricCard icon={Gauge} label="Task rate" value={`${rate}%`} delta="This group" tone="coral" /></div><div className="report-guidance"><strong>Latest guidance</strong><span>{latestGuidance?.message || 'No guidance submitted for this group.'}</span></div></article> })}{!reportGroups.length && <div className="empty-state"><FileText size={24} /><strong>No reports yet</strong><span>Active projects will receive a separate report here.</span></div>}</div><div className="panel report-form-panel"><div className="section-heading"><div><p className="eyebrow">Submit update</p><h3>Group-specific weekly report</h3></div></div><form className="guidance-form" onSubmit={onGuidance}><label>Project<select name="project" defaultValue={reportGroups[0]?.name || ''} required>{reportGroups.map((project) => <option key={project.name}>{project.name}</option>)}</select></label><label>Weekly guidance<textarea name="message" rows="4" placeholder="Summarize completed work, blockers, and next steps..." required /></label><button className="primary-button" type="submit"><Check size={15} /> Send report</button></form></div></section>
+  return <section className="workspace-page"><PageHeader eyebrow="Group reporting" title="Reports" description="Each active project has one distinct report with its own progress, tasks, and guidance." /><div className="report-group-grid">{reportGroups.map((project) => { const projectTasks = getTasks(project.name); const completed = projectTasks.filter((task) => task.done).length; const rate = projectTasks.length ? Math.round((completed / projectTasks.length) * 100) : 0; const latestGuidance = getGuidance(project.name); return <article className="panel report-group-card" key={project.name}><div className="section-heading"><div><p className="eyebrow">Group report</p><h3>{project.name}</h3></div><button className="secondary-button" onClick={() => downloadReport(project)}><FileText size={15} /> Download</button></div><p>{project.mentor || 'Mentor to be assigned'} · {project.progress || 0}% project progress</p><div className="metric-grid compact-grid"><MetricCard icon={Check} label="Completed" value={String(completed)} delta={`${projectTasks.length} total tasks`} tone="green" /><MetricCard icon={Target} label="Open" value={String(projectTasks.length - completed)} delta="Needs attention" tone="blue" /><MetricCard icon={Gauge} label="Task rate" value={`${rate}%`} delta="This group" tone="coral" /></div><div className="report-guidance"><strong>Latest guidance</strong><span>{latestGuidance?.message || 'No guidance submitted for this group.'}</span></div></article> })}{!reportGroups.length && <div className="empty-state"><FileText size={24} /><strong>No reports yet</strong><span>Active projects will receive a separate report here.</span></div>}</div><div className="panel report-form-panel"><div className="section-heading"><div><p className="eyebrow">Submit update</p><h3>Group-specific weekly report</h3></div></div><form className="guidance-form" onSubmit={onSubmitReport}><label>Project<select name="project" defaultValue={reportGroups[0]?.name || ''} required>{reportGroups.map((project) => <option key={project.name}>{project.name}</option>)}</select></label><label>Weekly guidance<textarea name="message" rows="4" placeholder="Summarize completed work, blockers, and next steps..." required /></label><button className="primary-button" type="submit"><Check size={15} /> Save report</button></form></div></section>
 }
 
 function LegacyReportsPage({ tasks, guidance, onGuidance }) {
@@ -1011,13 +765,19 @@ function LegacyReportsPage({ tasks, guidance, onGuidance }) {
   })
 
   return <section className="workspace-page"><PageHeader eyebrow="Weekly reporting" title="Reports" description="Track task completion, review guidance requests, and summarize your project progress." /><div className="guidance-layout panel"><div className="guidance-section"><p className="eyebrow">This week</p><h3>Project status</h3><div className="metric-grid compact-grid"><MetricCard icon={Check} label="Completed tasks" value={String(summary.done)} delta="This weekly cycle" tone="green" /><MetricCard icon={Target} label="Open tasks" value={String(summary.open)} delta="Still in progress" tone="blue" /><MetricCard icon={Gauge} label="Completion rate" value={`${completionRate}%`} delta="Current momentum" tone="coral" /></div></div><div className="guidance-section"><p className="eyebrow">Guidance</p><h3>Mentor conversations</h3>{guidance.length ? <div className="guidance-list">{guidance.map((item) => <div className="guidance-item" key={item.id}><strong>{item.project}</strong><span>{item.from}</span><p>{item.message}</p><small>{item.status}</small></div>)}</div> : <div className="empty-state compact"><FileText size={20} /><span>No guidance requests submitted yet.</span></div>}</div></div>
-    <div className="panel report-form-panel"><div className="section-heading"><div><p className="eyebrow">Submit update</p><h3>Weekly summary</h3></div></div><form className="guidance-form" onSubmit={onGuidance}><label>Project<select name="project" defaultValue="Smart HealthNet"><option>Smart HealthNet</option><option>Campus Connect</option><option>EcoTrack</option></select></label><label>Weekly guidance<textarea name="message" rows="4" placeholder="Summarize completed work, blockers, and next steps..." required /></label><button className="primary-button" type="submit"><Check size={15} /> Send report</button></form></div></section>
+    <div className="panel report-form-panel"><div className="section-heading"><div><p className="eyebrow">Submit update</p><h3>Weekly summary</h3></div></div><form className="guidance-form" onSubmit={onGuidance}><label>Project<select name="project" defaultValue=""><option value="" disabled>Select a project</option>{guidance.length ? [...new Set(guidance.map((item) => item.project))].map((project) => <option key={project} value={project}>{project}</option>) : <option value="">No projects yet</option>}</select></label><label>Weekly guidance<textarea name="message" rows="4" placeholder="Summarize completed work, blockers, and next steps..." required /></label><button className="primary-button" type="submit"><Check size={15} /> Send report</button></form></div></section>
 }
 
 function KnowledgePage({ items, query, canAdd, onAdd }) { const [filter, setFilter] = useState('All'); const [showAdd, setShowAdd] = useState(false); const types = ['All', ...new Set(items.map((item) => item.type))]; const visible = items.filter((item) => (filter === 'All' || item.type === filter) && `${item.title} ${item.tag} ${item.description} ${item.owner}`.toLowerCase().includes(query.toLowerCase())); return <section className="workspace-page"><div className="workspace-page-header"><PageHeader eyebrow="Institutional memory" title="Knowledge repository" description="Find project reports, research, templates, presentations, and tutorials." />{canAdd && <button className="primary-button" onClick={() => setShowAdd(true)}><Plus size={16} /> Add resource</button>}</div><div className="knowledge-toolbar"><div className="filter-tabs">{types.map((type) => <button key={type} className={filter === type ? 'active' : ''} onClick={() => setFilter(type)}>{type}</button>)}</div><span>{visible.length} resources</span></div><div className="knowledge-grid">{visible.map((item) => <article className="knowledge-card" key={item.id}><div className="knowledge-icon"><BookOpen size={18} /></div><div><span className="knowledge-type">{item.type}</span><h3>{item.title}</h3><p>{item.description}</p><div className="knowledge-meta"><span>{item.tag}</span><span>{item.owner}</span><span>{item.year}</span></div><a href={item.link} target="_blank" rel="noreferrer">Open resource <ArrowUpRight size={14} /></a></div></article>)}</div>{!visible.length && <div className="empty-state"><BookOpen size={24} /><strong>No resources found</strong><span>Try another search or category.</span></div>}{showAdd && <div className="modal-backdrop" onClick={() => setShowAdd(false)}><form className="composer-modal" onSubmit={(event) => { onAdd(event); setShowAdd(false) }} onClick={(event) => event.stopPropagation()}><div className="modal-heading"><div><p className="eyebrow">Knowledge repository</p><h2>Add a resource</h2></div><button type="button" className="icon-button" onClick={() => setShowAdd(false)} aria-label="Close dialog"><X size={18} /></button></div><label>Title<input name="title" required placeholder="Resource title" /></label><label>Type<select name="type"><option>Project report</option><option>Research paper</option><option>Tutorial</option><option>Template</option><option>Presentation</option></select></label><label>Category<input name="tag" required placeholder="e.g. AI Research" /></label><label>Description<textarea name="description" required rows="3" placeholder="What will students learn?" /></label><label>Resource link<input name="link" type="url" required placeholder="https://..." /></label><div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setShowAdd(false)}>Cancel</button><button className="primary-button" type="submit"><Plus size={16} /> Add resource</button></div></form></div>}</section> }
 function SettingsPage({ user, settings, onSave }) { return <section className="workspace-page"><PageHeader eyebrow="Workspace control" title="Settings" description="Update your profile, academic context, and notification preferences." /><form className="settings-layout" onSubmit={onSave}><div className="panel settings-panel"><p className="eyebrow">Profile</p><h3>Personal information</h3><label>Full name<input name="name" defaultValue={user.name} required /></label><label>Email address<input name="email" type="email" defaultValue={user.email} required /></label><div className="role-summary"><ShieldCheck size={18} /><div><strong>{roles[user.role].label} account</strong><span>Role permissions are controlled by your account.</span></div></div></div><div className="panel settings-panel"><p className="eyebrow">Academic workspace</p><h3>Context</h3><label>Department<input name="department" defaultValue={settings.department} required /></label><label>Batch / year<input name="batch" defaultValue={settings.batch} required /></label><div className="setting-toggle"><div><strong>Notifications</strong><span>Receive project activity updates.</span></div><input type="checkbox" name="notifications" defaultChecked={settings.notifications} /></div><div className="setting-toggle"><div><strong>Weekly digest</strong><span>Get a weekly progress summary.</span></div><input type="checkbox" name="weeklyDigest" defaultChecked={settings.weeklyDigest} /></div><button className="primary-button" type="submit"><Check size={16} /> Save settings</button></div></form></section> }
-function RoleOperations({ role, onTool }) { const hod = role === 'hod'; return <section className="role-operations"><div><p className="eyebrow">{hod ? 'Department oversight' : 'Mentor console'}</p><h2>{hod ? 'Academic operations' : 'Working groups'}</h2><p>{hod ? 'Track mentors, groups, achievements, and department progress.' : 'Monitor your assigned groups and keep their next actions clear.'}</p></div><div className="ops-grid"><div className="ops-stat"><strong>{hod ? '08' : '03'}</strong><span>{hod ? 'active mentors' : 'working groups'}</span></div><div className="ops-stat"><strong>{hod ? '24' : '12'}</strong><span>students supported</span></div><div className="ops-stat"><strong>76%</strong><span>average progress</span></div></div><div className="ops-actions"><button className="secondary-button" onClick={onTool}><Users size={15} /> {hod ? 'View mentors & groups' : 'Manage working groups'}</button><button className="secondary-button" onClick={onTool}><FileText size={15} /> Generate group report</button>{hod && <button className="primary-button" onClick={onTool}><Plus size={15} /> Upload achievement</button>}</div></section> }
-function RoleTool({ role, onClose }) { const hod = role === 'hod'; return <div className="modal-backdrop" onClick={onClose}><div className="role-tool panel" onClick={(event) => event.stopPropagation()}><div className="modal-heading"><div><p className="eyebrow">{hod ? 'HOD authority' : 'Mentor console'}</p><h2>{hod ? 'Mentors & working groups' : 'Working groups'}</h2></div><button className="icon-button" onClick={onClose} aria-label="Close dialog"><X size={18} /></button></div><div className="group-row"><div className="workspace-avatar">SH</div><div><strong>Smart HealthNet group</strong><span>Dr. Meera Patel · 72% progress · 4 students</span></div><button className="text-button">Set tasks <ArrowUpRight size={14} /></button></div><div className="group-row"><div className="workspace-avatar">CC</div><div><strong>Campus Connect group</strong><span>Prof. K. Rao · 48% progress · 6 students</span></div><button className="text-button">View report <ArrowUpRight size={14} /></button></div>{hod && <div className="achievement-box"><Sparkles size={18} /><div><strong>Achievement spotlight</strong><span>Upload a winning project or department achievement to show on every home page.</span></div><button className="secondary-button">Choose file</button></div>}<button className="primary-button" onClick={onClose}>Done</button></div></div> }
+function RoleOperations({ role, onTool }) {
+  const hod = role === 'hod'
+  return <section className="role-operations"><div><p className="eyebrow">{hod ? 'Department oversight' : 'Mentor console'}</p><h2>{hod ? 'Academic operations' : 'Working groups'}</h2><p>{hod ? 'Track mentors, groups, achievements, and department progress.' : 'Monitor your assigned groups and keep their next actions clear.'}</p></div><div className="ops-grid"><div className="ops-stat"><strong>—</strong><span>{hod ? 'active mentors' : 'working groups'}</span></div><div className="ops-stat"><strong>—</strong><span>students supported</span></div><div className="ops-stat"><strong>—</strong><span>average progress</span></div></div><div className="ops-actions"><button className="secondary-button" onClick={onTool}><Users size={15} /> {hod ? 'View mentors & groups' : 'Manage working groups'}</button><button className="secondary-button" onClick={onTool}><FileText size={15} /> Generate group report</button>{hod && <button className="primary-button" onClick={onTool}><Plus size={15} /> Upload achievement</button>}</div></section>
+}
+function RoleTool({ role, onClose }) {
+  const hod = role === 'hod'
+  return <div className="modal-backdrop" onClick={onClose}><div className="role-tool panel" onClick={(event) => event.stopPropagation()}><div className="modal-heading"><div><p className="eyebrow">{hod ? 'HOD authority' : 'Mentor console'}</p><h2>{hod ? 'Mentors & working groups' : 'Working groups'}</h2></div><button className="icon-button" onClick={onClose} aria-label="Close dialog"><X size={18} /></button></div><div className="empty-state compact"><Users size={20} /><span>No active groups or mentor assignments yet.</span></div>{hod && <div className="achievement-box"><Sparkles size={18} /><div><strong>Achievement spotlight</strong><span>Publish a department achievement once real records are available.</span></div><button className="secondary-button">Choose file</button></div>}<button className="primary-button" onClick={onClose}>Done</button></div></div>
+}
 
 function Launch({ onStart }) { return <div className="launch-screen"><div className="launch-copy"><div className="launch-brand"><span className="brand-mark">p</span><strong>project<span>vault</span></strong></div><div className="launch-kicker"><span /> Academic project intelligence <span /></div><h1>Where ideas<br /><em>become visible.</em></h1><p className="launch-description">A focused home for student builders, generous mentors, and academic leaders shaping the next useful thing.</p><div className="launch-actions"><button className="primary-button" onClick={() => onStart('register')}>Enter your workspace <ArrowRight size={17} /></button><button className="launch-login" onClick={() => onStart('login')}><LogIn size={16} /> Sign in</button></div><div className="launch-trust"><ShieldCheck size={15} /> Built for academic teams <span /> <LockKeyhole size={14} /> Private by role</div></div><div className="launch-art"><div className="launch-art-grid" /><div className="launch-orbit orbit-one" /><div className="launch-orbit orbit-two" /><div className="launch-signal signal-one"><span>01</span><strong>Ideas</strong><small>shape the question</small></div><div className="launch-signal signal-two"><span>02</span><strong>Teams</strong><small>move the work</small></div><div className="launch-signal signal-three"><span>03</span><strong>Outcomes</strong><small>make it matter</small></div><div className="launch-core"><div className="launch-core-mark">p</div><span>PROJECT<span>VAULT</span></span></div><div className="launch-caption"><FolderKanban size={15} /><span>One workspace<br /><strong>many ways forward</strong></span></div></div></div> }
 
