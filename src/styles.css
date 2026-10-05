@@ -716,3 +716,10 @@ body { background: #f6f8ff; }
 :root[data-theme='dark'] .auth-side-stat { border-color: rgba(145,151,224,.28); color: #e1e6ff; background: rgba(24,33,68,.52); }
 
 @media (max-width: 760px) { .auth-live, .auth-side-stat { display: none; }.auth-role-tabs button { min-height: 75px; }.auth-role-tabs button small { display: none; } }
+
+.saved-report-list { display: grid; gap: 8px; margin-top: 8px; }
+.saved-report { padding-top: 8px; border-top: 1px solid var(--line); }
+.saved-report summary { display: grid; gap: 4px; cursor: pointer; }
+.saved-report summary strong { font-size: 10px; }
+.saved-report summary span { color: #89968e; font-size: 9px; }
+.saved-report pre { max-height: 260px; margin: 10px 0 0; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); font: inherit; font-size: 10px; line-height: 1.6; }

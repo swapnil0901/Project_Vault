@@ -63,19 +63,28 @@ export function resolveProjectImage(project = {}, fallback = 'https://images.uns
 }
 
 export function calculateSimilarityScore(candidateText = '', referenceText = '') {
-  const stopWords = new Set(['a', 'an', 'and', 'are', 'for', 'from', 'in', 'is', 'of', 'on', 'or', 'the', 'to', 'using', 'with'])
-  const normalize = (value = '') => value.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((word) => word.length > 2 && !stopWords.has(word))
-  const candidateWords = normalize(candidateText)
-  const referenceWords = normalize(referenceText)
+  const stopWords = new Set(['a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'in', 'into', 'is', 'it', 'of', 'on', 'or', 'the', 'this', 'to', 'using', 'was', 'were', 'with'])
+  const normalize = (value) => String(value ?? '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .match(/[\p{L}\p{N}]+/gu)
+    ?.filter((word) => word.length > 2 && !stopWords.has(word)) || []
+  const countTerms = (words) => words.reduce((counts, word) => counts.set(word, (counts.get(word) || 0) + 1), new Map())
+  const candidateTerms = countTerms(normalize(candidateText))
+  const referenceTerms = countTerms(normalize(referenceText))
 
-  if (!candidateWords.length || !referenceWords.length) return 0
+  if (!candidateTerms.size || !referenceTerms.size) return 0
 
-  const candidateSet = new Set(candidateWords)
-  const referenceSet = new Set(referenceWords)
-  const overlap = [...candidateSet].filter((word) => referenceSet.has(word))
-  const smallerSetSize = Math.min(candidateSet.size, referenceSet.size)
+  let dotProduct = 0
+  for (const [word, count] of candidateTerms) {
+    dotProduct += count * (referenceTerms.get(word) || 0)
+  }
 
-  return Math.round((overlap.length / smallerSetSize) * 100)
+  const candidateMagnitude = Math.sqrt([...candidateTerms.values()].reduce((sum, count) => sum + count ** 2, 0))
+  const referenceMagnitude = Math.sqrt([...referenceTerms.values()].reduce((sum, count) => sum + count ** 2, 0))
+
+  return Math.round((dotProduct / (candidateMagnitude * referenceMagnitude)) * 100)
 }
 
 export function getCertificateItems() {
