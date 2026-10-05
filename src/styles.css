@@ -65,6 +65,8 @@
 .hod-status.needs-review, .hod-status.monitoring, .hod-status.review-pending, .hod-status.needs-support, .hod-status.intervention, .hod-status.watching { background: #fef1d8; color: #8f6c2d; }
 .hod-module-card h3 { margin: 0; font-size: 17px; letter-spacing: -.45px; }
 .hod-module-card p { margin: 0; color: #6e7f76; font-size: 11px; line-height: 1.6; }
+.hod-group-entry { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.hod-group-entry .text-button, .hod-module-card > .text-button { flex: 0 0 auto; color: #b65d50; font-size: 10px; }
 .hod-progress-wrap { display: flex; align-items: center; gap: 12px; margin-top: auto; }
 .hod-progress-wrap strong { color: #466d50; font: 700 10px 'DM Mono', monospace; }
 .hod-progress { flex: 1; height: 10px; border-radius: 999px; background: #edf2ee; overflow: hidden; }
@@ -354,6 +356,10 @@ body {
 }
 .chat-channels button { border-radius: 9px; transition: .18s ease; }
 .chat-channels button.selected, .chat-channels button:hover { color: #164c37; background: linear-gradient(90deg, #dff2e5, #eef8f0); }
+.chat-create-form { display: grid; gap: 9px; margin: 4px 4px 12px; padding: 10px 4px 13px; border-bottom: 1px solid var(--line); }
+.chat-create-form label { display: grid; gap: 5px; color: var(--muted); font-size: 10px; }
+.chat-create-form input, .chat-create-form select { width: 100%; min-width: 0; padding: 9px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: var(--surface); font: inherit; }
+.chat-create-form .secondary-button { justify-content: center; }
 .channel-avatar { border-radius: 10px; background: linear-gradient(135deg, #d9f0df, #c1e6cc); }
 .message-row { border-radius: 8px; padding-left: 8px; padding-right: 8px; }
 .chat-form input, .ai-search, .process-step input, .process-editor input, .settings-panel label input {
@@ -450,6 +456,11 @@ body { background: #f6f8ff; }
 .tech-stack span { color: #4d48a4; background: #eceaff; }
 .detail-hero { border-color: #d8d3f4; background: linear-gradient(120deg, #ece8ff, #e5f5ff 55%, #fff 100%); }
 .detail-hero h2 { color: #2c2c63; }
+.person-project-profile { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.person-project-profile > div:last-child { display: grid; gap: 4px; min-width: 0; }
+.person-project-profile strong { overflow-wrap: anywhere; font-size: 11px; }
+.person-project-profile span, .person-project-profile small { color: var(--muted); font-size: 9px; line-height: 1.45; }
+.people-list .profile-avatar, .person-project-profile .profile-avatar { flex: 0 0 34px; }
 
 /* Role pages, reports and resources */
 .role-hero { border-color: #d9d3f4; background: linear-gradient(118deg, #eeeaff, #e4f6f0 75%); }
@@ -645,6 +656,11 @@ body { background: #f6f8ff; }
 /* Dynamic authentication experience */
 .auth-screen { position: relative; overflow: hidden; }
 .auth-panel { position: relative; z-index: 2; animation: auth-panel-in .65s cubic-bezier(.2,.8,.25,1) both; }
+.password-change-panel { align-self: center; }
+.password-change-panel .auth-form { display: grid; gap: 13px; }
+.password-change-panel .auth-form label { display: grid; gap: 6px; color: #596b60; font-size: 10px; font-weight: 700; }
+.password-change-panel .auth-form input { width: 100%; min-height: 42px; padding: 10px 12px; border: 1px solid #d7e3da; border-radius: 7px; background: #fff; font-size: 12px; }
+.password-change-panel .auth-form .secondary-button { justify-content: center; }
 .auth-brand { align-items: center; }
 .auth-live { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: #71809c; font-size: 9px; font-weight: 600; }
 .auth-live i { width: 6px; height: 6px; border-radius: 50%; background: #3bb883; box-shadow: 0 0 0 4px rgba(59,184,131,.13); animation: auth-pulse 2s infinite; }
@@ -661,6 +677,11 @@ body { background: #f6f8ff; }
 .auth-form label { position: relative; }
 .auth-form input { transition: border-color .2s ease, box-shadow .2s ease, background .2s ease; }
 .auth-form input:focus { border-color: #8e81d9; background: #fff; box-shadow: 0 0 0 4px rgba(123, 103, 211, .13); }
+.auth-form .academic-year-field { display: grid; gap: 9px; margin: 3px 0 18px; padding: 13px; border: 1px solid #d9e8dd; border-radius: 9px; background: linear-gradient(110deg, #f1f8f2, #f8fbf8); }
+.academic-year-label { display: flex; align-items: center; gap: 7px; color: #37694a; font-size: 10px; font-weight: 700; }
+.academic-year-select { width: 100%; min-height: 43px; padding: 0 12px; border: 1px solid #cddfd1; border-radius: 6px; outline: 0; color: #243b2c; background: #fff; font: 600 12px 'DM Sans', sans-serif; transition: border-color .2s ease, box-shadow .2s ease; }
+.academic-year-select:focus { border-color: #68a47a; box-shadow: 0 0 0 3px rgba(77, 145, 96, .15); }
+.academic-year-field small { color: #718078; font-size: 9px; line-height: 1.45; }
 .password-input { position: relative; margin-top: 7px; }
 .password-input input { margin-top: 0; padding-right: 42px; }
 .password-input button { position: absolute; top: 50%; right: 5px; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 7px; color: #75809c; background: transparent; transform: translateY(-50%); transition: .2s ease; }
@@ -685,6 +706,12 @@ body { background: #f6f8ff; }
 :root[data-theme='dark'] .auth-role-preview { border-color: #47467c; color: #d9d6ff; background: linear-gradient(100deg, #2d2a59, #1c3c59); }
 :root[data-theme='dark'] .auth-role-preview span, :root[data-theme='dark'] .auth-live, :root[data-theme='dark'] .auth-side-stat span { color: #b8c4df; }
 :root[data-theme='dark'] .auth-form input:focus { background: #1b2744; }
+:root[data-theme='dark'] .password-change-panel .auth-form label { color: #d4dfd8; }
+:root[data-theme='dark'] .password-change-panel .auth-form input { color: #eef1ff; border-color: #3a4766; background: #151f37; }
+:root[data-theme='dark'] .auth-form .academic-year-field { border-color: #3b5747; background: linear-gradient(110deg, #17291f, #1b2734); }
+:root[data-theme='dark'] .academic-year-label { color: #a9dbb4; }
+:root[data-theme='dark'] .academic-year-select { border-color: #405b49; color: #eef6ef; background: #17251c; }
+:root[data-theme='dark'] .academic-year-field small { color: #b5c8ba; }
 :root[data-theme='dark'] .password-input button { color: #c4cee8; }:root[data-theme='dark'] .password-input button:hover { background: #303860; }
 :root[data-theme='dark'] .auth-side-stat { border-color: rgba(145,151,224,.28); color: #e1e6ff; background: rgba(24,33,68,.52); }
 

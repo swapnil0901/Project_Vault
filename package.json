@@ -8,6 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "node server/index.js",
+    "data:seed": "node server/seedProjects.js",
+    "data:replace": "node server/seedProjects.js --replace",
+    "accounts:provision": "node server/provisionRosterAccounts.js",
     "data:reset": "node server/resetData.js",
     "test": "node --test src/*.test.js server/*.test.js",
     "test:server": "node --test server/*.test.js"

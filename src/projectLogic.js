@@ -35,6 +35,7 @@ export function buildRoleNavigation(role) {
       'Overview',
       'All Projects',
       'Mentors & Groups',
+      'Task Schedule',
       'Students',
       'Teams',
       'Project Monitoring',

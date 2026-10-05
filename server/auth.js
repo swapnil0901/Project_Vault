@@ -16,6 +16,7 @@ export function signToken(user) {
       email: user.email,
       role: user.role,
       name: user.name,
+      mustChangePassword: Boolean(user.mustChangePassword),
     },
     process.env.JWT_SECRET || 'projectvault-secret',
     { expiresIn: '7d' }

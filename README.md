@@ -81,6 +81,16 @@ npm run data:reset
 
 This command is destructive and should not be run against a production database.
 
+To replace all records with the project information imported from the supplied OCR, explicitly confirm the exact database name. The command runs the deletion and import in a MongoDB transaction:
+
+```powershell
+$env:CONFIRM_DATABASE_NAME = "test"
+npm run data:replace
+Remove-Item Env:CONFIRM_DATABASE_NAME
+```
+
+Change `test` only after verifying the target database. The import creates project, task, guidance, knowledge, mentor-directory, and process records; it does not invent user accounts, emails, reports, or achievements. Several PDF pages were marked unreadable in the supplied OCR, so those details remain absent until the original pages can be transcribed.
+
 ## Features
 
 - Role-based auth for student, mentor, and HOD

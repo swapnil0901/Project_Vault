@@ -37,6 +37,8 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['student', 'mentor', 'hod'], default: 'student' },
   department: String,
   batch: String,
+  academicYear: String,
+  mustChangePassword: { type: Boolean, default: false },
   notifications: { type: Boolean, default: true },
   weeklyDigest: { type: Boolean, default: true },
 }, { timestamps: true })
@@ -53,7 +55,7 @@ const projectSchema = new mongoose.Schema({
   color: String,
   mentor: String,
   members: [String],
-  memberDetails: [{ name: String, email: String, batch: String, department: String }],
+  memberDetails: [{ name: String, email: String, batch: String, academicYear: String, department: String, rollNo: String }],
   tech: [String],
   github: String,
   drive: String,
@@ -124,10 +126,18 @@ const feedbackSchema = new mongoose.Schema({
 
 const messageSchema = new mongoose.Schema({
   channel: String,
+  groupId: String,
   author: String,
   authorId: String,
   role: String,
   text: { type: String, required: true },
+}, { timestamps: true })
+
+const chatGroupSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  project: { type: String, required: true },
+  createdBy: { type: String, required: true },
+  memberIds: [String],
 }, { timestamps: true })
 
 const knowledgeSchema = new mongoose.Schema({
@@ -156,6 +166,7 @@ const Guidance = mongoose.models.Guidance || mongoose.model('Guidance', guidance
 const Request = mongoose.models.Request || mongoose.model('Request', requestSchema)
 const Feedback = mongoose.models.Feedback || mongoose.model('Feedback', feedbackSchema)
 const Message = mongoose.models.Message || mongoose.model('Message', messageSchema)
+const ChatGroup = mongoose.models.ChatGroup || mongoose.model('ChatGroup', chatGroupSchema)
 const Knowledge = mongoose.models.Knowledge || mongoose.model('Knowledge', knowledgeSchema)
 const Process = mongoose.models.Process || mongoose.model('Process', processSchema)
 
@@ -166,9 +177,23 @@ const publicUser = (user) => ({
   role: user.role,
   department: user.department,
   batch: user.batch,
+  academicYear: user.academicYear || normalizeAcademicYear(user.batch),
+  mustChangePassword: Boolean(user.mustChangePassword),
   notifications: user.notifications,
   weeklyDigest: user.weeklyDigest,
 })
+
+function normalizeAcademicYear(value) {
+  const match = String(value || '').match(/\b(20\d{2})(?:\s*[-/–]\s*(?:20)?\d{2})?\b/)
+  if (!match) return ''
+  const startYear = Number(match[1])
+  return `${startYear}-${startYear + 1}`
+}
+
+function isValidAcademicYear(value) {
+  return /^20\d{2}-20\d{2}$/.test(String(value || ''))
+    && Number(value.slice(5)) === Number(value.slice(0, 4)) + 1
+}
 
 app.get('/api/health', (_req, res) => {
   const databaseReady = mongoose.connection.readyState === 1
@@ -181,12 +206,13 @@ app.get('/api/health', (_req, res) => {
 })
 
 app.post('/api/auth/register', asyncRoute(async (req, res) => {
-  const { name, email, password, role, department, batch, secret } = req.body || {}
+  const { name, email, password, role, department, batch, academicYear, secret } = req.body || {}
 
   if (!name || !email || !password) {
     return res.status(400).json({ message: 'Name, email and password are required.' })
   }
   if (!['student', 'mentor', 'hod'].includes(role || 'student')) return res.status(400).json({ message: 'Invalid role.' })
+  if ((role || 'student') === 'student' && !isValidAcademicYear(academicYear)) return res.status(400).json({ message: 'Select a valid academic year.' })
   if (role === 'mentor' && secret !== process.env.MENTOR_SECRET) return res.status(403).json({ message: 'Invalid mentor secret code.' })
   if (role === 'hod' && secret !== process.env.HOD_SECRET) return res.status(403).json({ message: 'Invalid HOD secret code.' })
 
@@ -203,7 +229,8 @@ app.post('/api/auth/register', asyncRoute(async (req, res) => {
       password: hashedPassword,
       role: role || 'student',
       department,
-      batch,
+      batch: batch || academicYear,
+      academicYear: (role || 'student') === 'student' ? academicYear : undefined,
     })
 
     const token = signToken(user)
@@ -214,7 +241,7 @@ app.post('/api/auth/register', asyncRoute(async (req, res) => {
 }))
 
 app.post('/api/auth/login', asyncRoute(async (req, res) => {
-  const { email, password } = req.body || {}
+  const { email, password, academicYear } = req.body || {}
 
   if (!email || !password) {
     return res.status(400).json({ message: 'Email and password are required.' })
@@ -231,11 +258,36 @@ app.post('/api/auth/login', asyncRoute(async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials.' })
     }
 
+    if (user.role === 'student') {
+      if (!isValidAcademicYear(academicYear)) return res.status(400).json({ message: 'Select your academic year to continue.' })
+      const storedYear = user.academicYear || normalizeAcademicYear(user.batch)
+      if (!storedYear) return res.status(403).json({ message: 'Your academic year is not verified. Ask your department administrator to update your student profile.' })
+      if (storedYear !== academicYear) return res.status(401).json({ message: 'The selected academic year does not match this student account.' })
+    }
+
     const token = signToken(user)
     return res.json({ token, user: publicUser(user) })
   } catch (error) {
     return res.status(500).json({ message: 'Login failed', error: error.message })
   }
+}))
+
+app.put('/api/auth/password', requireAuth, asyncRoute(async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {}
+  if (typeof newPassword !== 'string' || newPassword.length < 8) {
+    return res.status(400).json({ message: 'New password must be at least 8 characters.' })
+  }
+
+  const user = await User.findById(req.user.id)
+  if (!user) return res.status(404).json({ message: 'User not found.' })
+  if (!await comparePassword(currentPassword || '', user.password)) {
+    return res.status(401).json({ message: 'Current password is incorrect.' })
+  }
+
+  user.password = await hashPassword(newPassword)
+  user.mustChangePassword = false
+  await user.save()
+  res.json({ message: 'Password updated successfully.' })
 }))
 
 function requireAuth(req, res, next) {
@@ -248,10 +300,24 @@ function requireAuth(req, res, next) {
 
   try {
     req.user = verifyToken(token)
+    if (req.user.mustChangePassword && req.path !== '/api/auth/password') {
+      return res.status(403).json({ message: 'Change your temporary password before continuing.', mustChangePassword: true })
+    }
     next()
   } catch (error) {
     return res.status(401).json({ message: 'Invalid token' })
   }
+}
+
+function isStudentProjectMember(project, user) {
+  return (Array.isArray(project.members) && project.members.includes(user.name))
+    || (project.memberDetails || []).some((member) => member.email?.toLowerCase() === user.email?.toLowerCase())
+}
+
+function projectAccessFilter(user) {
+  if (user.role === 'hod') return {}
+  if (user.role === 'mentor') return { mentor: user.name }
+  return { $or: [{ members: user.name }, { 'memberDetails.email': user.email }] }
 }
 
 app.get('/api/users', requireAuth, asyncRoute(async (req, res) => {
@@ -261,21 +327,51 @@ app.get('/api/users', requireAuth, asyncRoute(async (req, res) => {
   res.json(users.map(publicUser))
 }))
 
+app.get('/api/mentors', requireAuth, asyncRoute(async (_req, res) => {
+  const mentors = await mongoose.connection.collection('mentors').find({}).sort({ name: 1 }).toArray()
+  res.json(mentors)
+}))
+
 app.post('/api/users', requireAuth, asyncRoute(async (req, res) => {
   if (req.user.role !== 'hod') return res.status(403).json({ message: 'Only HOD users can add department users.' })
-  const { name, email, password, role, department, batch } = req.body || {}
+  const { name, email, password, role, department, batch, academicYear } = req.body || {}
   if (!name?.trim() || !email?.trim() || !password || !['student', 'mentor', 'hod'].includes(role)) {
     return res.status(400).json({ message: 'Name, email, password, and a valid role are required.' })
   }
+  if (role === 'student' && !isValidAcademicYear(academicYear)) return res.status(400).json({ message: 'Select a valid academic year.' })
 
   try {
     const existingUser = await User.findOne({ email: email.toLowerCase().trim() })
     if (existingUser) return res.status(409).json({ message: 'A user with this email already exists.' })
-    const user = await User.create({ name: name.trim(), email: email.toLowerCase().trim(), password: await hashPassword(password), role, department, batch })
+    const user = await User.create({ name: name.trim(), email: email.toLowerCase().trim(), password: await hashPassword(password), role, department, batch, academicYear: role === 'student' ? academicYear : undefined })
     res.status(201).json(publicUser(user))
   } catch (error) {
     res.status(500).json({ message: 'User creation failed', error: error.message })
   }
+}))
+
+app.delete('/api/users/:id', requireAuth, asyncRoute(async (req, res) => {
+  if (req.user.role !== 'hod') return res.status(403).json({ message: 'Only HOD users can remove students.' })
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: 'Invalid student ID.' })
+
+  const student = await User.findById(req.params.id)
+  if (!student) return res.status(404).json({ message: 'Student not found.' })
+  if (student.role !== 'student') return res.status(400).json({ message: 'Only student accounts can be removed here.' })
+
+  await Project.updateMany(
+    {},
+    {
+      $pull: {
+        members: student.name,
+        memberDetails: { $or: [{ email: student.email }, { name: student.name }] },
+      },
+    },
+  )
+  await Request.deleteMany({ $or: [{ to: student.email }, { fromUserId: student._id.toString() }] })
+  await ChatGroup.updateMany({ memberIds: student._id.toString() }, { $pull: { memberIds: student._id.toString() } })
+  await User.findByIdAndDelete(student._id)
+
+  res.status(204).end()
 }))
 
 app.get('/api/projects', requireAuth, asyncRoute(async (_req, res) => {
@@ -324,12 +420,26 @@ app.delete('/api/projects/:id', requireAuth, asyncRoute(async (req, res) => {
   if (!['mentor', 'hod'].includes(req.user.role)) return res.status(403).json({ message: 'Only mentors and HODs can delete projects.' })
   const project = await Project.findByIdAndDelete(req.params.id)
   if (!project) return res.status(404).json({ message: 'Project not found' })
-  await Task.deleteMany({ project: project.name })
+  await Promise.all([
+    Task.deleteMany({ project: project.name }),
+    Request.deleteMany({ project: project.name }),
+  ])
   res.status(204).end()
 }))
 
-app.get('/api/tasks', requireAuth, asyncRoute(async (_req, res) => {
-  const tasks = await Task.find({}).sort({ createdAt: -1 })
+app.get('/api/tasks', requireAuth, asyncRoute(async (req, res) => {
+  let taskFilter = {}
+  if (req.user.role === 'student') {
+    const memberProjects = await Project.find({
+      $or: [
+        { members: req.user.name },
+        { 'memberDetails.email': req.user.email },
+      ],
+    }).select('name')
+    taskFilter = { project: { $in: memberProjects.map((project) => project.name) } }
+  }
+
+  const tasks = await Task.find(taskFilter).sort({ createdAt: -1 })
   res.json(tasks)
 }))
 
@@ -362,6 +472,15 @@ app.put('/api/tasks/:id', requireAuth, asyncRoute(async (req, res) => {
   }
 }))
 
+app.delete('/api/tasks/:id', requireAuth, asyncRoute(async (req, res) => {
+  if (!['mentor', 'hod'].includes(req.user.role)) return res.status(403).json({ message: 'Only mentors and HODs can delete tasks.' })
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: 'Invalid task ID.' })
+  const task = await Task.findByIdAndDelete(req.params.id)
+  if (!task) return res.status(404).json({ message: 'Task not found.' })
+  await Request.deleteMany({ taskId: task._id.toString() })
+  res.status(204).end()
+}))
+
 app.get('/api/guidance', requireAuth, asyncRoute(async (_req, res) => {
   res.json(await Guidance.find({}).sort({ createdAt: -1 }))
 }))
@@ -391,13 +510,69 @@ app.get('/api/feedback', requireAuth, asyncRoute(async (_req, res) => {
   res.json(await Feedback.find({}).sort({ createdAt: -1 }))
 }))
 
-app.get('/api/messages', requireAuth, asyncRoute(async (_req, res) => {
-  res.json(await Message.find({}).sort({ createdAt: 1 }))
+app.get('/api/messages', requireAuth, asyncRoute(async (req, res) => {
+  const user = req.user
+  const [projects, groups] = await Promise.all([
+    Project.find(projectAccessFilter(user)).select('name'),
+    ChatGroup.find({ memberIds: user.id }).select('_id'),
+  ])
+  const messageFilters = [{ channel: { $in: projects.map((project) => project.name) }, groupId: { $exists: false } }]
+  if (groups.length) messageFilters.push({ groupId: { $in: groups.map((group) => group._id.toString()) } })
+  res.json(await Message.find({ $or: messageFilters }).sort({ createdAt: 1 }))
 }))
 
 app.post('/api/messages', requireAuth, asyncRoute(async (req, res) => {
-  const message = await Message.create({ ...req.body, author: req.user.name, authorId: req.user.id, role: req.user.role })
+  const text = typeof req.body?.text === 'string' ? req.body.text.trim() : ''
+  if (!text) return res.status(400).json({ message: 'Message text is required.' })
+
+  const groupId = typeof req.body.groupId === 'string' ? req.body.groupId : ''
+  let channel
+  if (groupId) {
+    if (!mongoose.isValidObjectId(groupId)) return res.status(400).json({ message: 'Invalid chat group.' })
+    const group = await ChatGroup.findById(groupId)
+    if (!group || !group.memberIds.includes(req.user.id)) return res.status(403).json({ message: 'You are not a member of this chat group.' })
+    channel = `student-group:${group._id}`
+  } else {
+    channel = typeof req.body.channel === 'string' ? req.body.channel.trim() : ''
+    const project = await Project.findOne({ name: channel })
+    if (!project) return res.status(404).json({ message: 'Project chat not found.' })
+    const allowed = req.user.role === 'hod'
+      || (req.user.role === 'mentor' && project.mentor === req.user.name)
+      || (req.user.role === 'student' && isStudentProjectMember(project, req.user))
+    if (!allowed) return res.status(403).json({ message: 'You cannot send messages to this project room.' })
+  }
+
+  const message = await Message.create({ channel, groupId: groupId || undefined, author: req.user.name, authorId: req.user.id, role: req.user.role, text })
   res.status(201).json(message)
+}))
+
+app.get('/api/chat-groups', requireAuth, asyncRoute(async (req, res) => {
+  if (req.user.role !== 'student') return res.json([])
+  const groups = await ChatGroup.find({ memberIds: req.user.id }).sort({ createdAt: -1 }).lean()
+  res.json(groups.map(({ _id, name, project, memberIds }) => ({ _id, name, project, memberCount: memberIds.length })))
+}))
+
+app.post('/api/chat-groups', requireAuth, asyncRoute(async (req, res) => {
+  if (req.user.role !== 'student') return res.status(403).json({ message: 'Only students can create student chat groups.' })
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : ''
+  const projectName = typeof req.body?.project === 'string' ? req.body.project.trim() : ''
+  if (!name || !projectName) return res.status(400).json({ message: 'Group name and project are required.' })
+
+  const project = await Project.findOne({ name: projectName })
+  if (!project) return res.status(404).json({ message: 'Project not found.' })
+  if (!isStudentProjectMember(project, req.user)) return res.status(403).json({ message: 'You can only create a group for one of your project teams.' })
+
+  const memberNames = (project.members || []).filter(Boolean)
+  const memberEmails = (project.memberDetails || []).map((member) => member.email?.trim().toLowerCase()).filter(Boolean)
+  const rosterFilters = []
+  if (memberNames.length) rosterFilters.push({ name: { $in: memberNames } })
+  if (memberEmails.length) rosterFilters.push({ email: { $in: memberEmails } })
+  const students = rosterFilters.length
+    ? await User.find({ role: 'student', $or: rosterFilters }).select('_id')
+    : []
+  const memberIds = [...new Set([...students.map((student) => student._id.toString()), req.user.id])]
+  const group = await ChatGroup.create({ name, project: project.name, createdBy: req.user.id, memberIds })
+  res.status(201).json({ _id: group._id, name: group.name, project: group.project, memberCount: memberIds.length })
 }))
 
 app.get('/api/knowledge', requireAuth, asyncRoute(async (_req, res) => {
@@ -421,30 +596,59 @@ app.put('/api/process', requireAuth, asyncRoute(async (req, res) => {
 }))
 
 app.put('/api/me', requireAuth, asyncRoute(async (req, res) => {
-  const user = await User.findByIdAndUpdate(req.user.id, { name: req.body.name, email: req.body.email, department: req.body.department, batch: req.body.batch, notifications: req.body.notifications, weeklyDigest: req.body.weeklyDigest }, { new: true, runValidators: true }).select('-password')
+  if (req.user.role === 'student' && req.body.academicYear && !isValidAcademicYear(req.body.academicYear)) return res.status(400).json({ message: 'Select a valid academic year.' })
+  const updates = { name: req.body.name, email: req.body.email, department: req.body.department, batch: req.body.batch, notifications: req.body.notifications, weeklyDigest: req.body.weeklyDigest }
+  if (req.user.role === 'student' && req.body.academicYear) {
+    updates.academicYear = req.body.academicYear
+    updates.batch = req.body.academicYear
+  }
+  const user = await User.findByIdAndUpdate(req.user.id, updates, { new: true, runValidators: true }).select('-password')
   if (!user) return res.status(404).json({ message: 'User not found' })
   res.json(publicUser(user))
 }))
 
-app.get('/api/reports', requireAuth, asyncRoute(async (_req, res) => {
-  const reports = await Report.find({}).sort({ createdAt: -1 })
+app.get('/api/reports', requireAuth, asyncRoute(async (req, res) => {
+  if (req.user.role === 'hod') {
+    return res.json(await Report.find({}).sort({ createdAt: -1 }))
+  }
+
+  const projectFilter = req.user.role === 'mentor'
+    ? { mentor: req.user.name }
+    : { $or: [{ members: req.user.name }, { 'memberDetails.email': req.user.email }] }
+  const projects = await Project.find(projectFilter).select('name')
+  const reports = await Report.find({ projectName: { $in: projects.map((project) => project.name) } }).sort({ createdAt: -1 })
   res.json(reports)
 }))
 
 app.post('/api/reports', requireAuth, asyncRoute(async (req, res) => {
-  const { projectName, student, tasks, guidance, week } = req.body || {}
+  const { projectName, guidance, week } = req.body || {}
+  if (!projectName?.trim()) return res.status(400).json({ message: 'Project name is required.' })
+
+  const project = await Project.findOne({ name: projectName.trim() })
+  if (!project) return res.status(404).json({ message: 'Project not found.' })
+
+  const isProjectMember = (Array.isArray(project.members) && project.members.includes(req.user.name))
+    || (project.memberDetails || []).some((member) => member.email?.toLowerCase() === req.user.email?.toLowerCase())
+  const canAccessProject = req.user.role === 'hod'
+    || (req.user.role === 'mentor' && project.mentor === req.user.name)
+    || (req.user.role === 'student' && isProjectMember)
+  if (!canAccessProject) return res.status(403).json({ message: 'You can only generate reports for your own project groups.' })
 
   try {
+    const tasks = await Task.find({ project: project.name }).lean()
+    const reportGuidance = Array.isArray(guidance)
+      ? guidance.filter((item) => typeof item?.message === 'string').map((item) => ({ message: item.message.trim() }))
+      : []
     const reportText = buildWeeklyReport({
-      projectName,
-      student,
+      projectName: project.name,
+      student: req.user.name,
       tasks,
-      guidance,
+      guidance: reportGuidance,
     })
 
     const report = await Report.create({
-      projectName,
-      student,
+      projectName: project.name,
+      student: req.user.name,
       content: reportText,
       week: week || 'Current week',
       createdBy: req.user.id,
@@ -481,6 +685,14 @@ app.post('/api/achievements', requireAuth, asyncRoute(async (req, res) => {
   if (!req.body?.title?.trim()) return res.status(400).json({ message: 'Achievement title is required.' })
   const achievement = await Achievement.create({ ...req.body, createdBy: req.user.id })
   res.status(201).json(achievement)
+}))
+
+app.delete('/api/achievements/:id', requireAuth, asyncRoute(async (req, res) => {
+  if (req.user.role !== 'hod') return res.status(403).json({ message: 'Only HOD users can remove achievements.' })
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: 'Invalid achievement ID.' })
+  const achievement = await Achievement.findByIdAndDelete(req.params.id)
+  if (!achievement) return res.status(404).json({ message: 'Achievement not found.' })
+  res.status(204).end()
 }))
 
 app.post('/api/ai/project-advice', requireAuth, asyncRoute(async (req, res) => {
