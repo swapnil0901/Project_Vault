@@ -157,6 +157,11 @@ const processSchema = new mongoose.Schema({
   updatedBy: String,
 }, { timestamps: true })
 
+const academicYearSchema = new mongoose.Schema({
+  year: { type: String, required: true, unique: true },
+  createdBy: String,
+}, { timestamps: true })
+
 const User = mongoose.models.User || mongoose.model('User', userSchema)
 const Project = mongoose.models.Project || mongoose.model('Project', projectSchema)
 const Task = mongoose.models.Task || mongoose.model('Task', taskSchema)
@@ -169,6 +174,7 @@ const Message = mongoose.models.Message || mongoose.model('Message', messageSche
 const ChatGroup = mongoose.models.ChatGroup || mongoose.model('ChatGroup', chatGroupSchema)
 const Knowledge = mongoose.models.Knowledge || mongoose.model('Knowledge', knowledgeSchema)
 const Process = mongoose.models.Process || mongoose.model('Process', processSchema)
+const AcademicYear = mongoose.models.AcademicYear || mongoose.model('AcademicYear', academicYearSchema)
 
 const publicUser = (user) => ({
   id: user._id,
@@ -195,6 +201,19 @@ function isValidAcademicYear(value) {
     && Number(value.slice(5)) === Number(value.slice(0, 4)) + 1
 }
 
+function defaultAcademicYears() {
+  const currentStart = new Date().getFullYear() - (new Date().getMonth() < 6 ? 1 : 0)
+  const endYear = Math.max(2028, currentStart)
+  return Array.from({ length: endYear - (currentStart - 6) + 1 }, (_, index) => {
+    const startYear = currentStart - 6 + index
+    return `${startYear}-${startYear + 1}`
+  })
+}
+
+function sortAcademicYears(years) {
+  return [...new Set(years)].sort((left, right) => Number(left.slice(0, 4)) - Number(right.slice(0, 4)))
+}
+
 app.get('/api/health', (_req, res) => {
   const databaseReady = mongoose.connection.readyState === 1
   res.status(databaseReady ? 200 : 503).json({
@@ -204,6 +223,24 @@ app.get('/api/health', (_req, res) => {
     message: databaseReady ? 'ProjectVault backend is running' : 'ProjectVault backend is running, but MongoDB is unavailable.',
   })
 })
+
+app.get('/api/academic-years', asyncRoute(async (_req, res) => {
+  const savedYears = await AcademicYear.find({}).select('year -_id').lean()
+  res.json(sortAcademicYears([...defaultAcademicYears(), ...savedYears.map(({ year }) => year)]))
+}))
+
+app.post('/api/academic-years', requireAuth, asyncRoute(async (req, res) => {
+  if (req.user.role !== 'hod') return res.status(403).json({ message: 'Only HOD users can add academic years.' })
+  const year = String(req.body?.year || '').trim()
+  if (!isValidAcademicYear(year)) return res.status(400).json({ message: 'Enter a valid academic year, such as 2029-2030.' })
+
+  const existingYear = await AcademicYear.findOne({ year })
+  if (existingYear || defaultAcademicYears().includes(year)) return res.status(409).json({ message: 'That academic year is already available.' })
+
+  const createdYear = await AcademicYear.create({ year, createdBy: req.user.id })
+  const savedYears = await AcademicYear.find({}).select('year -_id').lean()
+  res.status(201).json({ year: createdYear.year, academicYears: sortAcademicYears([...defaultAcademicYears(), ...savedYears.map(({ year: savedYear }) => savedYear)]) })
+}))
 
 app.post('/api/auth/register', asyncRoute(async (req, res) => {
   const { name, email, password, role, department, batch, academicYear, secret } = req.body || {}
