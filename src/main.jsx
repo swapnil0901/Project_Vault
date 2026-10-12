@@ -14,7 +14,7 @@ function RoleOverview({ role, onOpen }) {
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
-  Activity, ArrowRight, ArrowUpRight, Bell, BookOpen, Check, CircleHelp, Eye, EyeOff, FileText, FolderKanban,
+  Activity, ArrowRight, ArrowUpRight, Bell, BookOpen, Check, CircleHelp, Eye, EyeOff, FileText, FolderKanban, Lightbulb,
   Award, CalendarDays, Gauge, GitBranch, GraduationCap, LayoutDashboard, LockKeyhole, LogIn, Menu, MessageCircle,
   MoreHorizontal, Moon, Plus, Search, Send, Settings, ShieldCheck, Sparkles, Sun, Target, Users, Video, X,
 } from 'lucide-react'
@@ -228,9 +228,13 @@ function App() {
     if (!projectForm.name.trim()) return
     const safeImage = projectForm.image.trim() || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80'
     const invitedMembers = projectForm.members.filter((member) => member.name.trim() || member.email.trim()).map((member) => ({ ...member, name: member.name.trim(), email: member.email.trim(), batch: member.batch.trim(), department: member.department.trim() }))
+    if (invitedMembers.some((member) => !member.email)) {
+      setToast('Enter an email address for each student you want to invite.')
+      return
+    }
     const existingProject = editingProjectId ? projects.find((project) => project.id === editingProjectId) : null
-    const memberNames = existingProject?.members?.length ? existingProject.members : [user?.name || 'Student', ...invitedMembers.map((member) => member.name || member.email)]
-    const projectData = { name: projectForm.name.trim(), type: 'New project', year: projectForm.members[0]?.batch?.trim() || 'New project', abstract: projectForm.description.trim() || 'Project abstract to be added.', problemStatement: projectForm.problemStatement.trim() || projectForm.description.trim() || 'Problem statement to be added.', solution: projectForm.solution.trim() || 'Solution approach to be added.', progress: 0, color: 'green', members: memberNames, memberDetails: invitedMembers, mentor: projectForm.mentor || 'Mentor to be requested', github: projectForm.github.trim(), drive: projectForm.drive.trim(), deployed: projectForm.deployed.trim(), image: safeImage, gallery: [safeImage] }
+    const memberNames = existingProject?.members?.length ? existingProject.members : [user?.name || 'Student']
+    const projectData = { name: projectForm.name.trim(), type: 'New project', year: projectForm.members[0]?.batch?.trim() || 'New project', abstract: projectForm.description.trim() || 'Project abstract to be added.', problemStatement: projectForm.problemStatement.trim() || projectForm.description.trim() || 'Problem statement to be added.', solution: projectForm.solution.trim() || 'Solution approach to be added.', progress: existingProject?.progress || 0, color: existingProject?.color || 'green', members: memberNames, memberDetails: existingProject?.memberDetails || [{ name: user?.name || 'Student', email: user?.email || '', batch: user?.batch || user?.academicYear || '', academicYear: user?.academicYear || '', department: user?.department || '' }], mentor: existingProject?.mentor || 'Mentor to be requested', github: projectForm.github.trim(), drive: projectForm.drive.trim(), deployed: projectForm.deployed.trim(), image: safeImage, gallery: [safeImage] }
     const saveRequest = editingProjectId
       ? apiRequest(`/api/projects/${editingProjectId}`, { method: 'PUT', body: JSON.stringify(projectData) })
       : apiRequest('/api/projects', { method: 'POST', body: JSON.stringify(projectData) })
@@ -238,17 +242,23 @@ function App() {
       const normalizedProject = normalizeProjects([savedProject])[0]
       const nextProjects = editingProjectId ? projects.map((project) => project.id === editingProjectId ? normalizedProject : project) : [normalizedProject, ...projects]
       setProjects(nextProjects)
-      if (!editingProjectId) {
-        const projectId = normalizedProject.id
+      const existingEmails = new Set((existingProject?.memberDetails || []).map((member) => member.email?.trim().toLowerCase()).filter(Boolean))
+      const existingNames = new Set((existingProject?.members || []).map((name) => name.trim().toLowerCase()))
+      const membersToInvite = invitedMembers.filter((member) =>
+        member.email
+        && !existingEmails.has(member.email.toLowerCase())
+        && !existingNames.has(member.name.toLowerCase()))
+      const selectedMentor = [...mentorDirectory, ...users].find((mentor) => mentor.name === projectForm.mentor)
+      const mentorAlreadyAssigned = existingProject?.mentor && existingProject.mentor === projectForm.mentor
       const nextRequests = [
-        ...invitedMembers.map((member) => ({ project: projectData.name, to: member.email, invitee: member, type: 'collaboration', status: 'pending' })),
-        ...(projectForm.mentor ? [{ project: projectData.name, to: projectForm.mentor, type: 'mentor', status: 'pending' }] : []),
+        ...membersToInvite.map((member) => ({ project: projectData.name, to: member.email, invitee: member, type: 'collaboration', status: 'pending' })),
+        ...(projectForm.mentor && !mentorAlreadyAssigned ? [{ project: projectData.name, to: selectedMentor?.email || projectForm.mentor, type: 'mentor', status: 'pending' }] : []),
       ]
-      Promise.all(nextRequests.map((request) => apiRequest('/api/requests', { method: 'POST', body: JSON.stringify(request) }))).then((createdRequests) => {
-        setRequests((current) => [...createdRequests.map((request) => ({ ...request, id: request._id })), ...current])
-        setToast(nextRequests.length ? 'Project created and requests sent' : 'Project created')
-      }).catch((error) => setToast(error.message || 'Project requests could not be saved.'))
-      } else setToast('Project updated')
+      if (nextRequests.length) {
+        Promise.all(nextRequests.map((request) => apiRequest('/api/requests', { method: 'POST', body: JSON.stringify(request) }))).then((createdRequests) => {
+          setToast(`${createdRequests.length} join request${createdRequests.length === 1 ? '' : 's'} sent`)
+        }).catch((error) => setToast(error.message || 'Project requests could not be saved.'))
+      } else setToast(editingProjectId ? 'Project updated' : 'Project created')
     }).catch((error) => setToast(error.message || 'Project could not be saved.'))
     setProjectForm({ name: '', description: '', problemStatement: '', solution: '', github: '', drive: '', deployed: '', image: '', members: [{ name: '', email: '', batch: '', department: '' }, { name: '', email: '', batch: '', department: '' }, { name: '', email: '', batch: '', department: '' }], mentor: '' })
     setEditingProjectId(null)
@@ -295,12 +305,24 @@ function App() {
       type: selected.type,
       status,
       message: note || (status === 'accepted'
-        ? 'Your request was accepted. The mentor has approved your collaboration and the project can proceed.'
-        : 'Your request was rejected for this cycle. Please review the feedback and try again after adjustments.'),
+        ? selected.type === 'collaboration'
+          ? `Your invitation to join ${selected.project} was accepted.`
+          : selected.type === 'mentor'
+            ? `Your mentor request for ${selected.project} was accepted.`
+            : 'Your task completion was approved.'
+        : selected.type === 'collaboration'
+          ? `Your invitation to join ${selected.project} was declined.`
+          : selected.type === 'mentor'
+            ? `Your mentor request for ${selected.project} was declined.`
+            : 'Your task completion request was rejected. Please update the work and submit proof again.'),
       createdAt: new Date().toLocaleString(),
     }
 
-    apiRequest(`/api/requests/${requestId}`, { method: 'PUT', body: JSON.stringify({ status, message: feedbackEntry.message }) }).then(({ feedback }) => {
+    apiRequest(`/api/requests/${requestId}`, { method: 'PUT', body: JSON.stringify({ status, message: feedbackEntry.message }) }).then(({ feedback, project }) => {
+      if (project) {
+        const [normalizedProject] = normalizeProjects([project])
+        setProjects((current) => current.map((item) => item.id === normalizedProject.id ? normalizedProject : item))
+      }
       setRequests((current) => current.filter((request) => (request._id || request.id) !== requestId))
       setRequestFeedback((current) => [{ ...feedback, id: feedback._id }, ...current])
       setToast(status === 'accepted' ? 'Request accepted' : 'Request rejected')
@@ -1061,7 +1083,21 @@ function ChangePasswordPage({ user, onSubmit, onSignOut }) {
   return <div className="auth-screen"><div className="auth-panel password-change-panel"><div className="auth-brand"><span className="brand-mark">p</span><strong>project<span>vault</span></strong></div><div className="auth-heading"><p className="eyebrow">Secure your account</p><h1>Choose a new password.</h1><p>Hi {user?.name}. Replace your temporary password before continuing to your workspace.</p></div><form className="auth-form" onSubmit={onSubmit}><label>Temporary password<input name="currentPassword" type="password" autoComplete="current-password" minLength="6" required /></label><label>New password<input name="newPassword" type="password" autoComplete="new-password" minLength="8" required /></label><label>Confirm new password<input name="confirmPassword" type="password" autoComplete="new-password" minLength="8" required /></label><button className="primary-button auth-submit" type="submit"><LockKeyhole size={16} /> Update password</button><button className="secondary-button" type="button" onClick={onSignOut}>Sign out</button></form></div><aside className="auth-side"><div className="auth-side-orbit orbit-one" /><div className="auth-side-orbit orbit-two" /><div className="auth-side-stat"><strong>One-time setup</strong><span>Your new password replaces the temporary one.</span></div><div className="auth-quote"><span>“</span><p>Keep your account personal. Choose a password only you know.</p><small>ProjectVault security</small></div></aside></div>
 }
 
-function Launch({ onStart }) { return <div className="launch-screen"><div className="launch-copy"><div className="launch-brand"><span className="brand-mark">p</span><strong>project<span>vault</span></strong></div><div className="launch-kicker"><span /> Academic project intelligence <span /></div><h1>Where ideas<br /><em>become visible.</em></h1><p className="launch-description">A focused home for student builders, generous mentors, and academic leaders shaping the next useful thing.</p><div className="launch-actions"><button className="primary-button" onClick={() => onStart('register')}>Enter your workspace <ArrowRight size={17} /></button><button className="launch-login" onClick={() => onStart('login')}><LogIn size={16} /> Sign in</button></div><div className="launch-trust"><ShieldCheck size={15} /> Built for academic teams <span /> <LockKeyhole size={14} /> Private by role</div></div><div className="launch-art"><div className="launch-art-grid" /><div className="launch-orbit orbit-one" /><div className="launch-orbit orbit-two" /><div className="launch-signal signal-one"><span>01</span><strong>Ideas</strong><small>shape the question</small></div><div className="launch-signal signal-two"><span>02</span><strong>Teams</strong><small>move the work</small></div><div className="launch-signal signal-three"><span>03</span><strong>Outcomes</strong><small>make it matter</small></div><div className="launch-core"><div className="launch-core-mark">p</div><span>PROJECT<span>VAULT</span></span></div><div className="launch-caption"><FolderKanban size={15} /><span>One workspace<br /><strong>many ways forward</strong></span></div></div></div> }
+function Launch({ onStart }) {
+  return <div className="launch-page launch-page-reference">
+    <header className="landing-nav"><a className="landing-brand" href="#home" aria-label="ProjectVault home"><span className="brand-mark"><GraduationCap size={20} /></span><strong>Project<span>Vault</span></strong></a><nav aria-label="Main navigation"><a className="active" href="#home">Home</a><a href="#features">Features</a><a href="#workflow">How it works</a><a href="#about">About</a></nav><div className="landing-nav-actions"><button className="landing-signin" onClick={() => onStart('login')}>Login</button><button className="landing-cta landing-cta-small" onClick={() => onStart('register')}>Get started</button></div></header>
+    <main id="home">
+      <section className="landing-hero"><div className="landing-hero-copy"><p className="landing-kicker"><span><Sparkles size={13} /></span> Academic project management platform</p><h1>Turn your ideas into <em>successful projects.</em></h1><p className="landing-lede">ProjectVault helps students, mentors, and institutions manage the academic project lifecycle—from the first idea through collaboration, progress reviews, and outcomes.</p><div className="landing-actions"><button className="landing-cta" onClick={() => onStart('register')}><ArrowRight size={17} /> Get started</button><a className="landing-secondary" href="#workflow"><span><ArrowRight size={14} /></span> Explore how it works</a></div><div className="landing-trust"><span><Check size={14} /> Secure accounts</span><span><Check size={14} /> Role based workspaces</span><span><Check size={14} /> Team collaboration</span></div></div>
+        <div className="landing-product-preview" role="img" aria-label="Illustration of ProjectVault workspace areas: overview, projects, teams, tasks, and reports"><div className="product-sidebar"><span className="product-logo"><span><GraduationCap size={15} /></span>ProjectVault</span><div className="product-nav active"><LayoutDashboard size={13} /> Overview</div><div className="product-nav"><FolderKanban size={13} /> Projects</div><div className="product-nav"><Users size={13} /> Teams</div><div className="product-nav"><Check size={13} /> Tasks</div><div className="product-nav"><FileText size={13} /> Reports</div></div><div className="product-screen"><div className="product-screen-top"><span>Project workspace</span><span className="product-profile"><span /> Your role</span></div><h3>Keep project work connected.</h3><p>One place for teams to plan, collaborate, and review progress.</p><div className="product-area-grid"><div><span className="product-area-icon"><FolderKanban size={15} /></span><strong>Projects</strong><small>Ideas and project details</small></div><div><span className="product-area-icon blue"><Users size={15} /></span><strong>Teams</strong><small>Members and mentors</small></div><div><span className="product-area-icon gold"><Check size={15} /></span><strong>Tasks</strong><small>Plans and submissions</small></div><div><span className="product-area-icon violet"><FileText size={15} /></span><strong>Outcomes</strong><small>Reports and achievements</small></div></div><div className="product-screen-note"><span><Activity size={14} /> Progress stays visible across roles</span><ArrowUpRight size={15} /></div></div></div>
+      </section>
+      <section className="landing-features" id="features"><div className="landing-section-heading"><div><span className="landing-section-tag">Features</span><h2>Everything you need to manage your academic projects.</h2></div><p>From the initial project idea through reviews and reports, keep the work organized in one shared workspace.</p></div><div className="landing-feature-grid"><article className="landing-feature"><span className="feature-icon feature-blue"><Target size={21} /></span><h3>Project lifecycle</h3><p>Capture project details, build a team, and keep resources with the work.</p></article><article className="landing-feature"><span className="feature-icon feature-cyan"><Users size={21} /></span><h3>Collaboration</h3><p>Coordinate students, mentors, and guidance requests in one place.</p></article><article className="landing-feature"><span className="feature-icon feature-violet"><ShieldCheck size={21} /></span><h3>Approvals and reviews</h3><p>Review task evidence and manage project related requests.</p></article><article className="landing-feature"><span className="feature-icon feature-blue"><FolderKanban size={21} /></span><h3>Workspace tools</h3><p>Keep tasks, schedules, project resources, and reports connected.</p></article><article className="landing-feature"><span className="feature-icon feature-violet"><LockKeyhole size={21} /></span><h3>Role based access</h3><p>Give students, mentors, and HODs tools for their responsibilities.</p></article><article className="landing-feature"><span className="feature-icon feature-cyan"><Activity size={21} /></span><h3>Analytics and insights</h3><p>Review project activity and progress across the department.</p></article></div></section>
+      <section className="landing-workflow" id="workflow"><div className="workflow-intro"><span className="landing-section-tag">Simple workflow</span><h2>How it works</h2><p>A clear, structured way to move academic projects from idea to outcome.</p><button className="landing-cta" onClick={() => onStart('register')}>Get started <ArrowRight size={16} /></button></div><ol className="workflow-list"><li><span className="workflow-icon"><Lightbulb size={23} /></span><strong>1. Start a project</strong><p>Share the idea and project details.</p></li><li><span className="workflow-icon"><Users size={23} /></span><strong>2. Connect your team</strong><p>Invite members and request a mentor.</p></li><li><span className="workflow-icon"><ShieldCheck size={23} /></span><strong>3. Review the work</strong><p>Coordinate guidance and approvals.</p></li><li><span className="workflow-icon"><Check size={23} /></span><strong>4. Track progress</strong><p>Organize tasks and submissions.</p></li><li><span className="workflow-icon"><Award size={23} /></span><strong>5. Share outcomes</strong><p>Keep reports and achievements visible.</p></li></ol></section>
+      <section className="landing-preview-section" id="about"><div className="landing-preview-illustration"><div className="preview-window-sidebar"><span className="preview-window-logo"><GraduationCap size={14} /> ProjectVault</span><span className="selected"><LayoutDashboard size={12} /> Overview</span><span><FolderKanban size={12} /> Projects</span><span><Check size={12} /> Tasks</span><span><FileText size={12} /> Reports</span></div><div className="preview-window-content"><p>PROJECT WORKSPACE</p><h3>My projects</h3><div className="preview-window-tabs"><span>All projects</span><span>In progress</span><span>Completed</span></div><div className="preview-window-row"><strong>Project details</strong><span>Team</span><span>Progress</span></div><div className="preview-window-row"><span>Project workspace</span><span>Members</span><i /></div><div className="preview-window-row"><span>Task schedule</span><span>Mentor</span><i /></div><div className="preview-window-row"><span>Reports and outcomes</span><span>Team</span><i /></div></div></div><div className="landing-preview-copy"><span className="landing-section-tag">One connected workspace</span><h2>A closer look at ProjectVault.</h2><p>ProjectVault gives each role a focused view of the projects, tasks, requests, and outcomes they need to work with.</p><ul><li><Check size={16} /> Project information stays organized</li><li><Check size={16} /> Teams can coordinate work and guidance</li><li><Check size={16} /> Progress and outcomes are easier to review</li></ul><a className="landing-outline-link" href="#features">Explore features <ArrowRight size={16} /></a></div></section>
+      <section className="landing-final-cta"><div><span className="landing-section-tag">Ready to get started?</span><h2>Build better projects, <em>together.</em></h2><p>Whether you are a student, mentor, or department leader, ProjectVault keeps academic project work moving in one place.</p><div className="landing-actions"><button className="landing-cta" onClick={() => onStart('register')}>Get started <ArrowRight size={16} /></button><a className="landing-final-link" href="#about">Learn more</a></div></div><div className="landing-roles"><span><GraduationCap size={21} /><strong>Students</strong><small>Build and learn</small></span><span><Users size={21} /><strong>Mentors</strong><small>Guide and review</small></span><span><ShieldCheck size={21} /><strong>HODs</strong><small>Review progress</small></span></div></section>
+    </main>
+    <footer className="landing-footer"><a className="landing-brand" href="#home"><span className="brand-mark"><GraduationCap size={20} /></span><strong>Project<span>Vault</span></strong></a><span>© {new Date().getFullYear()} ProjectVault. Manage · Collaborate · Build.</span><nav aria-label="Footer navigation"><a href="#features">Features</a><a href="#workflow">How it works</a><button onClick={() => onStart('login')}>Login</button></nav></footer>
+  </div>
+}
 
 function PasswordInput({ name, placeholder, onChange, required = true }) {
   const [visible, setVisible] = useState(false)

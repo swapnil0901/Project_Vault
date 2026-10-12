@@ -346,15 +346,32 @@ function requireAuth(req, res, next) {
   }
 }
 
-function isStudentProjectMember(project, user) {
-  return (Array.isArray(project.members) && project.members.includes(user.name))
-    || (project.memberDetails || []).some((member) => member.email?.toLowerCase() === user.email?.toLowerCase())
+async function projectAccessFilter(user) {
+  if (user.role === 'hod') return {}
+
+  const recipientFilters = [{ to: user.email }, { to: user.name }]
+  if (user.role === 'mentor') {
+    const pendingRequests = await Request.find({ type: 'mentor', status: 'pending', $or: recipientFilters }).select('project')
+    const acceptedRequests = await Request.find({ type: 'mentor', status: 'accepted', $or: recipientFilters }).select('project')
+    const acceptedProjects = new Set(acceptedRequests.map((request) => request.project))
+    const pendingProjects = [...new Set(pendingRequests.map((request) => request.project).filter((name) => !acceptedProjects.has(name)))]
+    return { mentor: user.name, ...(pendingProjects.length ? { name: { $nin: pendingProjects } } : {}) }
+  }
+
+  const pendingRequests = await Request.find({ type: 'collaboration', status: 'pending', $or: [...recipientFilters, { 'invitee.email': user.email }] }).select('project')
+  const acceptedRequests = await Request.find({ type: 'collaboration', status: 'accepted', $or: [...recipientFilters, { 'invitee.email': user.email }] }).select('project')
+  const acceptedProjects = new Set(acceptedRequests.map((request) => request.project))
+  const pendingProjects = [...new Set(pendingRequests.map((request) => request.project).filter((name) => !acceptedProjects.has(name)))]
+  return {
+    $and: [
+      { $or: [{ members: user.name }, { 'memberDetails.email': user.email }] },
+      ...(pendingProjects.length ? [{ name: { $nin: pendingProjects } }] : []),
+    ],
+  }
 }
 
-function projectAccessFilter(user) {
-  if (user.role === 'hod') return {}
-  if (user.role === 'mentor') return { mentor: user.name }
-  return { $or: [{ members: user.name }, { 'memberDetails.email': user.email }] }
+async function hasProjectAccess(project, user) {
+  return Boolean(await Project.exists({ _id: project._id, ...(await projectAccessFilter(user)) }))
 }
 
 app.get('/api/users', requireAuth, asyncRoute(async (req, res) => {
@@ -412,12 +429,44 @@ app.delete('/api/users/:id', requireAuth, asyncRoute(async (req, res) => {
 }))
 
 app.get('/api/projects', requireAuth, asyncRoute(async (_req, res) => {
-  const projects = await Project.find({}).sort({ createdAt: -1 })
-  res.json(projects)
+  const [projects, pendingRequests, acceptedMentorRequests] = await Promise.all([
+    Project.find({}).sort({ createdAt: -1 }),
+    Request.find({ status: 'pending', type: { $in: ['collaboration', 'mentor'] } }).select('project type to invitee'),
+    Request.find({ status: 'accepted', type: 'mentor' }).select('project'),
+  ])
+  const pendingByProject = new Map()
+  for (const request of pendingRequests) {
+    const pending = pendingByProject.get(request.project) || { memberEmails: new Set(), memberNames: new Set(), mentor: false }
+    if (request.type === 'collaboration') {
+      if (request.to) pending.memberEmails.add(request.to.toLowerCase())
+      if (request.invitee?.email) pending.memberEmails.add(request.invitee.email.toLowerCase())
+      if (request.invitee?.name) pending.memberNames.add(request.invitee.name.toLowerCase())
+      if (request.to && !request.to.includes('@')) pending.memberNames.add(request.to.toLowerCase())
+    } else {
+      pending.mentor = true
+    }
+    pendingByProject.set(request.project, pending)
+  }
+  const projectsWithAcceptedMentors = new Set(acceptedMentorRequests.map((request) => request.project))
+  res.json(projects.map((project) => {
+    const safeProject = project.toObject()
+    const pending = pendingByProject.get(project.name)
+    if (!pending) return safeProject
+    safeProject.members = (safeProject.members || []).filter((name) => !pending.memberNames.has(name.toLowerCase()))
+    safeProject.memberDetails = (safeProject.memberDetails || []).filter((member) =>
+      !pending.memberEmails.has(member.email?.toLowerCase())
+      && !pending.memberNames.has(member.name?.toLowerCase()))
+    if (pending.mentor && !projectsWithAcceptedMentors.has(project.name)) {
+      safeProject.mentor = 'Mentor to be requested'
+    }
+    return safeProject
+  }))
 }))
 
 app.post('/api/projects', requireAuth, asyncRoute(async (req, res) => {
   try {
+    const isStudentCreator = req.user.role === 'student'
+    const creator = isStudentCreator ? await User.findById(req.user.id).select('name email batch academicYear department') : null
     const project = await Project.create({
       name: req.body.name,
       description: req.body.description,
@@ -428,9 +477,17 @@ app.post('/api/projects', requireAuth, asyncRoute(async (req, res) => {
       year: req.body.year || new Date().getFullYear().toString(),
       progress: req.body.progress || 0,
       color: req.body.color || 'blue',
-      mentor: req.body.mentor || 'Mentor to be requested',
-      members: req.body.members || [],
-      memberDetails: req.body.memberDetails || [],
+      mentor: isStudentCreator ? 'Mentor to be requested' : (req.body.mentor || 'Mentor to be requested'),
+      members: isStudentCreator ? [req.user.name] : (req.body.members || []),
+      memberDetails: isStudentCreator
+        ? [{
+          name: creator?.name || req.user.name,
+          email: creator?.email || req.user.email,
+          batch: creator?.batch || '',
+          academicYear: creator?.academicYear || '',
+          department: creator?.department || '',
+        }]
+        : (req.body.memberDetails || []),
       tech: req.body.tech || [],
       github: req.body.github,
       drive: req.body.drive,
@@ -448,7 +505,16 @@ app.post('/api/projects', requireAuth, asyncRoute(async (req, res) => {
 
 app.put('/api/projects/:id', requireAuth, asyncRoute(async (req, res) => {
   if (!['mentor', 'hod', 'student'].includes(req.user.role)) return res.status(403).json({ message: 'You cannot update projects.' })
-  const project = await Project.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+  const updates = { ...req.body }
+  if (req.user.role === 'student') {
+    const existingProject = await Project.findById(req.params.id)
+    if (!existingProject) return res.status(404).json({ message: 'Project not found' })
+    if (!(await hasProjectAccess(existingProject, req.user))) return res.status(403).json({ message: 'You can only update projects you have joined.' })
+    delete updates.members
+    delete updates.memberDetails
+    delete updates.mentor
+  }
+  const project = await Project.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true })
   if (!project) return res.status(404).json({ message: 'Project not found' })
   res.json(project)
 }))
@@ -466,13 +532,8 @@ app.delete('/api/projects/:id', requireAuth, asyncRoute(async (req, res) => {
 
 app.get('/api/tasks', requireAuth, asyncRoute(async (req, res) => {
   let taskFilter = {}
-  if (req.user.role === 'student') {
-    const memberProjects = await Project.find({
-      $or: [
-        { members: req.user.name },
-        { 'memberDetails.email': req.user.email },
-      ],
-    }).select('name')
+  if (req.user.role !== 'hod') {
+    const memberProjects = await Project.find(await projectAccessFilter(req.user)).select('name')
     taskFilter = { project: { $in: memberProjects.map((project) => project.name) } }
   }
 
@@ -527,20 +588,122 @@ app.post('/api/guidance', requireAuth, asyncRoute(async (req, res) => {
   res.status(201).json(guidance)
 }))
 
-app.get('/api/requests', requireAuth, asyncRoute(async (_req, res) => {
-  res.json(await Request.find({ status: 'pending' }).sort({ createdAt: -1 }))
+app.get('/api/requests', requireAuth, asyncRoute(async (req, res) => {
+  const recipientFilters = [{ to: req.user.email }, { to: req.user.name }]
+  if (req.user.role === 'mentor') {
+    const mentorProjects = await Project.find(await projectAccessFilter(req.user)).select('name')
+    recipientFilters.push({ type: 'task-completion', project: { $in: mentorProjects.map((project) => project.name) } })
+  } else if (req.user.role === 'hod') {
+    recipientFilters.push({ type: 'task-completion' })
+  }
+
+  res.json(await Request.find({ status: 'pending', $or: recipientFilters }).sort({ createdAt: -1 }))
 }))
 
 app.post('/api/requests', requireAuth, asyncRoute(async (req, res) => {
-  const request = await Request.create({ ...req.body, from: req.user.name, fromUserId: req.user.id })
+  if (!['collaboration', 'mentor', 'task-completion'].includes(req.body.type)) {
+    return res.status(400).json({ message: 'Choose a valid request type.' })
+  }
+  if (req.user.role !== 'student') return res.status(403).json({ message: 'Only students can create project collaboration requests.' })
+  const project = await Project.findOne({ name: req.body.project })
+  if (!project) return res.status(404).json({ message: 'Project not found.' })
+  if (!(await hasProjectAccess(project, req.user))) return res.status(403).json({ message: 'You can only send requests for your own project groups.' })
+  if (['collaboration', 'mentor'].includes(req.body.type) && !String(req.body.to || '').trim()) {
+    return res.status(400).json({ message: 'A recipient is required for this request.' })
+  }
+  if (['collaboration', 'mentor'].includes(req.body.type)) {
+    const recipientNameOrEmail = String(req.body.to).trim()
+    const recipientFilter = recipientNameOrEmail.includes('@')
+      ? { email: recipientNameOrEmail.toLowerCase() }
+      : { name: recipientNameOrEmail }
+    const recipient = await User.findOne(recipientFilter).select('role email name')
+    const expectedRole = req.body.type === 'collaboration' ? 'student' : 'mentor'
+    if (!recipient || recipient.role !== expectedRole) {
+      return res.status(404).json({ message: `A registered ${expectedRole} account is required for this request.` })
+    }
+    const alreadyMember = req.body.type === 'collaboration'
+      && (project.memberDetails || []).some((member) => member.email?.toLowerCase() === recipient.email.toLowerCase())
+    if (alreadyMember) return res.status(409).json({ message: 'This student has already joined the project.' })
+    const target = recipient.email.toLowerCase()
+    const existingRequest = await Request.exists({
+      project: project.name,
+      type: req.body.type,
+      to: { $in: [target, recipient.name] },
+      status: 'pending',
+    })
+    if (existingRequest) return res.status(409).json({ message: 'A request is already pending for this recipient.' })
+  }
+
+  const request = await Request.create({
+    project: req.body.project,
+    from: req.user.name,
+    fromUserId: req.user.id,
+    to: String(req.body.to || '').trim().includes('@') ? String(req.body.to).trim().toLowerCase() : String(req.body.to || '').trim(),
+    invitee: req.body.invitee,
+    type: req.body.type,
+    status: 'pending',
+    taskId: req.body.taskId,
+    taskTitle: req.body.taskTitle,
+    proof: req.body.proof,
+  })
   res.status(201).json(request)
 }))
 
 app.put('/api/requests/:id', requireAuth, asyncRoute(async (req, res) => {
-  const request = await Request.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true })
+  const status = req.body.status
+  if (!['accepted', 'rejected'].includes(status)) return res.status(400).json({ message: 'Choose whether to accept or reject the request.' })
+
+  const request = await Request.findById(req.params.id)
   if (!request) return res.status(404).json({ message: 'Request not found' })
-  const feedback = await Feedback.create({ requestId: request._id.toString(), project: request.project, from: request.from, type: request.type, status: request.status, message: req.body.message || '', userId: req.user.id })
-  res.json({ request, feedback })
+
+  let project
+  if (request.type === 'collaboration' || request.type === 'mentor') {
+    const isRecipient = request.to === req.user.email || request.to === req.user.name
+    const expectedRole = request.type === 'collaboration' ? 'student' : 'mentor'
+    if (!isRecipient || req.user.role !== expectedRole) return res.status(403).json({ message: 'You are not authorized to respond to this request.' })
+    project = await Project.findOne({ name: request.project })
+    if (!project) return res.status(404).json({ message: 'Project not found.' })
+
+    if (status === 'accepted' && request.type === 'collaboration') {
+      const account = await User.findById(req.user.id).select('name email batch academicYear department')
+      const invitee = {
+        name: account?.name || req.user.name,
+        email: account?.email || req.user.email,
+        batch: account?.batch || request.invitee?.batch || '',
+        academicYear: account?.academicYear || '',
+        department: account?.department || request.invitee?.department || '',
+      }
+      project.members.addToSet(invitee.name)
+      if (!project.memberDetails.some((member) => member.email?.toLowerCase() === invitee.email?.toLowerCase())) {
+        project.memberDetails.push(invitee)
+      }
+      await project.save()
+    }
+
+    if (status === 'accepted' && request.type === 'mentor') {
+      if (!['Mentor to be requested', 'To be assigned', req.user.name].includes(project.mentor)) {
+        return res.status(409).json({ message: 'This project has already been assigned to another mentor.' })
+      }
+      project.mentor = req.user.name
+      await project.save()
+    }
+  } else if (request.type === 'task-completion') {
+    const taskProject = await Project.findOne({ name: request.project })
+    const canReview = req.user.role === 'hod'
+      || (req.user.role === 'mentor' && taskProject && await hasProjectAccess(taskProject, req.user))
+    if (!canReview) return res.status(403).json({ message: 'You are not authorized to review this task request.' })
+  } else {
+    return res.status(400).json({ message: 'This request type cannot be reviewed.' })
+  }
+
+  const updatedRequest = await Request.findOneAndUpdate(
+    { _id: request._id, status: 'pending' },
+    { status },
+    { new: true },
+  )
+  if (!updatedRequest) return res.status(409).json({ message: 'This request has already been answered.' })
+  const feedback = await Feedback.create({ requestId: updatedRequest._id.toString(), project: updatedRequest.project, from: updatedRequest.from, type: updatedRequest.type, status, message: req.body.message || '', userId: req.user.id })
+  res.json({ request: updatedRequest, feedback, project })
 }))
 
 app.get('/api/feedback', requireAuth, asyncRoute(async (_req, res) => {
@@ -549,8 +712,9 @@ app.get('/api/feedback', requireAuth, asyncRoute(async (_req, res) => {
 
 app.get('/api/messages', requireAuth, asyncRoute(async (req, res) => {
   const user = req.user
+  const accessFilter = await projectAccessFilter(user)
   const [projects, groups] = await Promise.all([
-    Project.find(projectAccessFilter(user)).select('name'),
+    Project.find(accessFilter).select('name'),
     ChatGroup.find({ memberIds: user.id }).select('_id'),
   ])
   const messageFilters = [{ channel: { $in: projects.map((project) => project.name) }, groupId: { $exists: false } }]
@@ -573,9 +737,7 @@ app.post('/api/messages', requireAuth, asyncRoute(async (req, res) => {
     channel = typeof req.body.channel === 'string' ? req.body.channel.trim() : ''
     const project = await Project.findOne({ name: channel })
     if (!project) return res.status(404).json({ message: 'Project chat not found.' })
-    const allowed = req.user.role === 'hod'
-      || (req.user.role === 'mentor' && project.mentor === req.user.name)
-      || (req.user.role === 'student' && isStudentProjectMember(project, req.user))
+    const allowed = await hasProjectAccess(project, req.user)
     if (!allowed) return res.status(403).json({ message: 'You cannot send messages to this project room.' })
   }
 
@@ -597,7 +759,7 @@ app.post('/api/chat-groups', requireAuth, asyncRoute(async (req, res) => {
 
   const project = await Project.findOne({ name: projectName })
   if (!project) return res.status(404).json({ message: 'Project not found.' })
-  if (!isStudentProjectMember(project, req.user)) return res.status(403).json({ message: 'You can only create a group for one of your project teams.' })
+  if (!(await hasProjectAccess(project, req.user))) return res.status(403).json({ message: 'You can only create a group for one of your project teams.' })
 
   const memberNames = (project.members || []).filter(Boolean)
   const memberEmails = (project.memberDetails || []).map((member) => member.email?.trim().toLowerCase()).filter(Boolean)
@@ -649,10 +811,7 @@ app.get('/api/reports', requireAuth, asyncRoute(async (req, res) => {
     return res.json(await Report.find({}).sort({ createdAt: -1 }))
   }
 
-  const projectFilter = req.user.role === 'mentor'
-    ? { mentor: req.user.name }
-    : { $or: [{ members: req.user.name }, { 'memberDetails.email': req.user.email }] }
-  const projects = await Project.find(projectFilter).select('name')
+  const projects = await Project.find(await projectAccessFilter(req.user)).select('name')
   const reports = await Report.find({ projectName: { $in: projects.map((project) => project.name) } }).sort({ createdAt: -1 })
   res.json(reports)
 }))
@@ -664,11 +823,8 @@ app.post('/api/reports', requireAuth, asyncRoute(async (req, res) => {
   const project = await Project.findOne({ name: projectName.trim() })
   if (!project) return res.status(404).json({ message: 'Project not found.' })
 
-  const isProjectMember = (Array.isArray(project.members) && project.members.includes(req.user.name))
-    || (project.memberDetails || []).some((member) => member.email?.toLowerCase() === req.user.email?.toLowerCase())
   const canAccessProject = req.user.role === 'hod'
-    || (req.user.role === 'mentor' && project.mentor === req.user.name)
-    || (req.user.role === 'student' && isProjectMember)
+    || await hasProjectAccess(project, req.user)
   if (!canAccessProject) return res.status(403).json({ message: 'You can only generate reports for your own project groups.' })
 
   try {
