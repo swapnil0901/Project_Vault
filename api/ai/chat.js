@@ -14,8 +14,7 @@ export default async function handler(req, res) {
     return app(req, res)
   } catch (error) {
     console.error('AI API startup failed:', error.message)
-    return res.status(503).json({
-      message: 'Database or backend service is temporarily unavailable.',
-    })
+    req.projectVaultDatabaseUnavailable = true
+    return app(req, res)
   }
 }

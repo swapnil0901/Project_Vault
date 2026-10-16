@@ -959,7 +959,11 @@ function AICenter({ projects, tasks, user }) {
           history: messages.slice(-8),
         }),
       })
-      setMessages((current) => [...current, { role: 'assistant', content: result.answer }])
+      setMessages((current) => [...current, {
+        role: 'assistant',
+        content: result.answer,
+        contextAvailable: result.contextAvailable !== false,
+      }])
     } catch (requestError) {
       setError(requestError.message || 'The AI assistant could not answer. Please try again.')
       setMessages((current) => current.slice(0, -1))
@@ -995,6 +999,7 @@ function AICenter({ projects, tasks, user }) {
           {messages.map((message, index) => <article className={`ai-chat-message ${message.role}`} key={`${index}-${message.role}`}>
             <span>{message.role === 'user' ? 'You' : 'ProjectVault AI'}</span>
             <p>{message.content}</p>
+            {message.role === 'assistant' && message.contextAvailable === false && <small className="ai-context-warning" role="status">Saved project and task data could not be loaded. This answer is based on your question only.</small>}
           </article>)}
           {sending && <div className="ai-chat-message assistant ai-thinking"><span>ProjectVault AI</span><p>Thinking through your question…</p></div>}
         </div>
