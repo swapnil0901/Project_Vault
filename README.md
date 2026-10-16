@@ -24,7 +24,11 @@ PORT=5000
 CLIENT_URL=http://localhost:5173
 VITE_API_URL=http://localhost:5000
 JWT_SECRET=replace-with-a-long-random-secret
+OPENAI_API_KEY=your-server-side-openai-api-key
+OPENAI_MODEL=gpt-4o-mini
 ```
+
+The AI Center uses `OPENAI_API_KEY` on the backend; never add this secret to a `VITE_` variable. Add the key and optional model to `.env` for local development and to the backend deployment's environment variables for production. Without a key, project archive search remains available and AI chat shows a setup message.
 
 ### 3. Install and verify locally
 
@@ -51,6 +55,8 @@ The repository includes `api/[...path].js`, which exposes the Express API as a V
 ```env
 MONGODB_URI=mongodb+srv://<database-user>:<url-encoded-password>@<cluster-host>/projectvault?retryWrites=true&w=majority&appName=ProjectVault
 JWT_SECRET=<long-random-secret>
+OPENAI_API_KEY=<server-side-openai-api-key>
+OPENAI_MODEL=gpt-4o-mini
 MENTOR_SECRET=<mentor-registration-secret>
 HOD_SECRET=<hod-registration-secret>
 CLIENT_URL=https://project-vault-nbnscoe.vercel.app
@@ -99,4 +105,5 @@ Change `test` only after verifying the target database. The import creates proje
 - Weekly report generation and display
 - MongoDB-ready backend for persistence
 - Downloadable Word-compatible weekly reports
-- Server-side optional OpenAI project advice and GitHub repository metadata
+- AI Center chat for AI questions and project/task coaching, using the signed-in user's accessible project, task, process, and relevant knowledge-resource context (requires a server-side OpenAI API key)
+- Project archive search and GitHub repository metadata

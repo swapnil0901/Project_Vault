@@ -667,7 +667,7 @@ function WorkspacePage({ page, projects, tasks, users = [], mentorDirectory = []
   }) : searchedProjects.filter((project) => selectedAcademicYear === 'All years' || extractAcademicYear(project.year) === selectedAcademicYear)
   if (selectedProject && page === 'All Projects') return <ProjectDetail project={selectedProject} mentorDirectory={mentorDirectory} canSeePrivate={canSeePrivate} onBack={() => onSelectProject(null)} onChat={onChat} />
   if (page === 'All Projects' || page === 'My Projects') return <section className="workspace-page"><div className="workspace-page-header"><div><p className="eyebrow">{pageContent.eyebrow}</p><h2>{pageContent.title}</h2><p>{pageContent.description}</p></div>{page === 'My Projects' && <button className="primary-button" onClick={onNewProject}><Plus size={18} /> New project</button>}</div>{page === 'All Projects' && <div className="project-year-filter"><label htmlFor="project-academic-year">Filter by academic year</label><select id="project-academic-year" value={selectedAcademicYear} onChange={(event) => setSelectedAcademicYear(event.target.value)}><option value="All years">All years</option>{projectYears.map((year) => <option key={year} value={year}>{year}</option>)}</select></div>}<div className="project-gallery">{visibleProjects.map((project) => <div className="managed-project-card" key={project.id || project.name}><ProjectCard project={project} canSeePrivate={canSeePrivate} mine={page === 'My Projects'} onSelect={() => onSelectProject(project)} onEdit={() => onNewProject(project)} /><div className="managed-project-actions">{['mentor', 'hod'].includes(user?.role) && <button className="text-button danger" onClick={() => onDeleteProject?.(project)}><X size={14} /> Delete project</button>}</div></div>)}</div>{visibleProjects.length === 0 && <div className="empty-state"><FolderKanban size={24} /><strong>No projects found for {selectedAcademicYear}</strong><span>Choose another academic year or clear the search.</span></div>}</section>
-  if (page === 'AI Center') return <AICenter projects={projects} />
+  if (page === 'AI Center') return <AICenter projects={projects} tasks={tasks} user={user} />
   if (page === 'Certificates') return <CertificatesPage />
   if (page === 'Project Process') return <ProcessPage steps={processSteps} canEdit={user?.role === 'mentor' || user?.role === 'hod'} onSave={onSaveProcess} />
   if (page === 'Project Chat') return <ChatPage projects={projects} messages={messages} user={user} onSend={onSendMessage} onCreateStudentChatGroup={onCreateStudentChatGroup} />
@@ -922,7 +922,105 @@ function MentorsGroupsDirectory({ mentors = [], projects = [] }) {
   </div>
 }
 
-function AICenter({ projects }) { const [query, setQuery] = useState(''); const matches = query ? projects.filter((project) => `${project.name} ${project.type} ${project.abstract}`.toLowerCase().includes(query.toLowerCase())) : []; return <section className="workspace-page"><PageHeader eyebrow="Project intelligence" title="AI project assistant" description="Ask about a project domain to find relevant completed work and starting points." /><div className="ai-panel panel"><div className="ai-prompt"><Sparkles size={21} /><div><h3>What are you building?</h3><p>Try “health sector”, “climate”, or “education”.</p></div></div><div className="ai-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Describe your project domain..." /></div>{query && <div className="ai-results"><p className="eyebrow">{matches.length} related projects found</p>{matches.slice(0, 6).map((project) => <div className="ai-result" key={project.id}><div className={`project-symbol ${project.color}`}><FolderKanban size={16} /></div><div><strong>{project.name}</strong><span>{project.year} · {project.type}</span><p>{project.abstract}</p></div></div>)}{!matches.length && <div className="empty-state compact"><Sparkles size={20} /><span>No matching archive projects yet. Try another domain.</span></div>}</div>}</div></section> }
+function AICenter({ projects, tasks, user }) {
+  const [archiveQuery, setArchiveQuery] = useState('')
+  const [chatInput, setChatInput] = useState('')
+  const [selectedProject, setSelectedProject] = useState('')
+  const [messages, setMessages] = useState([])
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
+  const matches = archiveQuery
+    ? projects.filter((project) => `${project.name} ${project.type} ${project.abstract}`.toLowerCase().includes(archiveQuery.toLowerCase()))
+    : []
+  const contextualProjects = projects.filter((project) => {
+    if (user?.role === 'hod') return true
+    if (user?.role === 'mentor') return project.mentor === user.name
+    return (Array.isArray(project.members) && (project.members.includes(user?.name) || project.members.includes(user?.email)))
+      || (Array.isArray(project.memberDetails) && project.memberDetails.some((member) => member.name === user?.name || member.email === user?.email))
+  })
+  const projectTasks = tasks.filter((task) => !selectedProject || task.project === selectedProject)
+  const openTasks = projectTasks.filter((task) => !task.done)
+
+  const sendMessage = async (event, suggestedMessage) => {
+    event?.preventDefault()
+    const message = (suggestedMessage || chatInput).trim()
+    if (!message || sending) return
+
+    setSending(true)
+    setError('')
+    if (!suggestedMessage) setChatInput('')
+    setMessages((current) => [...current, { role: 'user', content: message }])
+    try {
+      const result = await apiRequest('/api/ai/chat', {
+        method: 'POST',
+        body: JSON.stringify({
+          message,
+          project: selectedProject,
+          history: messages.slice(-8),
+        }),
+      })
+      setMessages((current) => [...current, { role: 'assistant', content: result.answer }])
+    } catch (requestError) {
+      setError(requestError.message || 'The AI assistant could not answer. Please try again.')
+      setMessages((current) => current.slice(0, -1))
+      setChatInput(message)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const changeProject = (event) => {
+    setSelectedProject(event.target.value)
+    setMessages([])
+    setError('')
+  }
+
+  return <section className="workspace-page">
+    <PageHeader eyebrow="Project intelligence" title="AI project assistant" description="Ask questions about AI, get help planning your project, or work through your next task with guidance grounded in your workspace." />
+    <div className="ai-center-grid">
+      <div className="ai-panel panel ai-chat-panel">
+        <div className="ai-prompt"><Sparkles size={21} /><div><h3>Your AI study and project coach</h3><p>Ask a question, explain where you’re stuck, or ask for a step-by-step plan.</p></div></div>
+        <label className="ai-project-select">Project context
+          <select value={selectedProject} onChange={changeProject}>
+            <option value="">All my projects</option>
+            {contextualProjects.map((project) => <option key={project.id || project.name} value={project.name}>{project.name}</option>)}
+          </select>
+        </label>
+        <div className="ai-chat-messages" aria-live="polite">
+          {!messages.length && <div className="ai-welcome">
+            <Sparkles size={20} />
+            <strong>What can I help you with?</strong>
+            <span>I can explain AI concepts, help break down your project tasks, and suggest what to work on next. I’ll use your project and task details when available.</span>
+          </div>}
+          {messages.map((message, index) => <article className={`ai-chat-message ${message.role}`} key={`${index}-${message.role}`}>
+            <span>{message.role === 'user' ? 'You' : 'ProjectVault AI'}</span>
+            <p>{message.content}</p>
+          </article>)}
+          {sending && <div className="ai-chat-message assistant ai-thinking"><span>ProjectVault AI</span><p>Thinking through your question…</p></div>}
+        </div>
+        {error && <div className="auth-error" role="alert">{error}</div>}
+        <form className="ai-chat-form" onSubmit={(event) => sendMessage(event)}>
+          <textarea value={chatInput} onChange={(event) => setChatInput(event.target.value)} maxLength={4000} rows={2} placeholder="Ask an AI question or tell me what you're working on..." aria-label="Ask the AI assistant" disabled={sending} />
+          <button className="primary-button" type="submit" disabled={sending || !chatInput.trim()}><Send size={15} /> Ask AI</button>
+        </form>
+        <div className="ai-suggestions"><span>Try asking</span>
+          {['Explain machine learning in simple terms', 'Help me plan the next steps for my project', 'How should I approach my next open task?'].map((suggestion) => <button key={suggestion} type="button" disabled={sending} onClick={(event) => sendMessage(event, suggestion)}>{suggestion}</button>)}
+        </div>
+      </div>
+      <aside className="ai-side-column">
+        <div className="panel ai-task-panel"><p className="eyebrow">Your workspace</p><h3>{selectedProject || 'Project progress'}</h3>
+          {selectedProject && projects.find((project) => project.name === selectedProject) && <p className="ai-project-progress">{projects.find((project) => project.name === selectedProject).abstract || 'Ask AI for help planning this project.'}</p>}
+          <div className="ai-task-counts"><span><strong>{projectTasks.length}</strong>Total tasks</span><span><strong>{openTasks.length}</strong>Open tasks</span></div>
+          {openTasks.length > 0 ? <div className="ai-open-tasks"><strong>Next tasks to work on</strong>{openTasks.slice(0, 4).map((task) => <div key={task.id || task._id || `${task.project}-${task.title}`}><Check size={14} /><span>{task.title}<small>{task.project} · Due {task.due || 'not set'}</small></span></div>)}</div> : <div className="ai-no-tasks">{projectTasks.length ? 'All tasks in this project are complete.' : 'Your open project tasks will appear here.'}</div>}
+        </div>
+        <div className="panel ai-archive-panel"><div className="ai-prompt"><Search size={18} /><div><h3>Project archive</h3><p>Find related projects from your college.</p></div></div>
+          <div className="ai-search"><Search size={16} /><input value={archiveQuery} onChange={(event) => setArchiveQuery(event.target.value)} placeholder="Search project topics..." aria-label="Search project archive" /></div>
+          {archiveQuery && <div className="ai-results"><p className="eyebrow">{matches.length} related projects found</p>{matches.slice(0, 5).map((project) => <div className="ai-result" key={project.id || project.name}><div className={`project-symbol ${project.color}`}><FolderKanban size={16} /></div><div><strong>{project.name}</strong><span>{project.year} · {project.type}</span><p>{project.abstract}</p></div></div>)}{!matches.length && <div className="empty-state compact"><Sparkles size={18} /><span>No matching archive projects yet. Try another topic.</span></div>}</div>}
+        </div>
+      </aside>
+    </div>
+  </section>
+}
 function ProcessPage({ steps, canEdit, onSave }) { const [draft, setDraft] = useState(steps); const [newStep, setNewStep] = useState(''); const save = () => onSave(draft); return <section className="workspace-page"><PageHeader eyebrow="Standard workflow" title="How projects get completed" description={canEdit ? 'You can update this process as a mentor or HOD.' : 'Follow this shared path from idea to final submission.'} /><div className="process-panel panel"><div className="process-list">{draft.map((step, index) => <div className="process-step" key={`${step}-${index}`}><span>{String(index + 1).padStart(2, '0')}</span>{canEdit ? <input value={step} onChange={(event) => setDraft(draft.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} /> : <strong>{step}</strong>}</div>)}</div>{canEdit && <div className="process-editor"><input value={newStep} onChange={(event) => setNewStep(event.target.value)} placeholder="Add a process step" /><button className="secondary-button" onClick={() => { if (newStep.trim()) { setDraft([...draft, newStep.trim()]); setNewStep('') } }}><Plus size={15} /> Add step</button><button className="primary-button" onClick={save}><Check size={15} /> Save process</button></div>}</div></section> }
 function NotificationItem({ title, detail }) { return <div className="notification-item"><div className="notification-icon"><Bell size={16} /></div><div><strong>{title}</strong><span>{detail}</span><small>Just now</small></div></div> }
 
